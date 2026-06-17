@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>University Student Portal : Students Online Portal</title>
+    <style>
+        /* Recreating the main.css styles identified in your code */
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 12px;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+
+        }
+
+        #content {
+            width: 960px;
+            margin: 20px auto;
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        #top_info {
+            padding: 10px;
+            border-bottom: 2px solid #0056b3;
+        }
+
+        .logoimg {
+            max-height: 80px;
+            margin-right: 15px;
+            margin-;
+        }
+
+        h1 a {
+            color: #0056b3;
+            text-decoration: none;
+            font-size: 24px;
+        }
+
+        /* Navigation Styles */
+        #navigation {
+            background: #0056b3;
+            color: #fff;
+            margin-top: -20px;
+        }
+
+        .ult-section {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            background: #004494;
+        }
+
+        .secondary {
+            background: #efefef;
+        }
+
+        .ult-section li a {
+            display: block;
+            padding: 10px 15px;
+            color: #fff;
+            text-decoration: none;
+            border-right: 1px solid #003366;
+        }
+
+        .secondary li a {
+            color: #333;
+            border-right: 1px solid #ccc;
+            font-size: 11px;
+        }
+
+        .ult-section li a:hover, .active a {
+            background: #002d5f;
+            color: #fff !important;
+        }
+
+        /* Form Styles */
+        #body_content {
+            padding: 30px;
+        }
+
+        fieldset {
+            border: 1px solid #0056b3;
+            margin-bottom: 20px;
+            padding: 20px;
+            border-radius: 5px;
+        }
+
+        legend {
+            font-weight: bold;
+            color: #0056b3;
+            padding: 0 10px;
+            font-size: 1.2em;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        td {
+            padding: 8px;
+            vertical-align: middle;
+        }
+
+        input[type="text"], input[type="password"] {
+            width: 90%;
+            padding: 5px;
+            border: 1px solid #ccc;
+        }
+
+        .inputbutton {
+            background: #0056b3;
+            color: white;
+            padding: 8px 20px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            border-radius: 3px;
+        }
+
+        .inputbutton:hover {
+            background: #003d80;
+        }
+
+        .note-box {
+            background: #fff9c4;
+            padding: 15px;
+            border-left: 5px solid #fbc02d;
+            margin: 20px 0;
+        }
+
+        #footer {
+            text-align: center;
+            padding: 15px;
+            background: #f8f8f8;
+            border-top: 1px solid #ccc;
+            font-size: 11px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="content">
+    <div id="top_info">
+        <table border="0" width="100%">
+            <tr> 
+                <td width="1%">
+                <td width="80"><img src="../Images/logo.jpg" class="logoimg" alt="MKU Logo" /></td>
+                </td> 
+                <td>
+                    <h1>University Student Portal</h1>
+                </td> 
+            </tr> 
+        </table>
+    </div>	
+
+    <div id="navigation">
+        <ul id="navigation-primary" class="ult-section primary">
+            <li class="active"><a href="#">Home</a></li>
+            <li><a href="#">Information Update</a></li>
+            <li><a href="#">Fees</a></li>
+            <li><a href="#">Timetables</a></li>
+            <li><a href="#">Course Registration</a></li>
+            <li><a href="#">Results</a></li>
+            <li><a href="#">Sign Out</a></li>
+        </ul>
+        <ul id="navigation-secondary" class="ult-section secondary">
+            <li class="active"><a href="#">Change Password</a></li>
+            <li><a href="#">Elections</a></li>
+            <li><a href="#">Clearance</a></li>
+            <li><a href="#">Downloads</a></li>
+            <li><a href="#">E-Learning Portal</a></li>
+        </ul> 
+    </div>
+
+    <div id="body_content">
+        <form action="#" method="post"> 
+            <fieldset> 
+                <legend> Students Login</legend> 
+                <table border="0">
+                    <tr> 
+                        <td align="right"><b>Student ID / Reg. Number:</b></td> 
+                        <td><input type="text" name="regNo" placeholder="e.g. MKU01/2026" /></td> 
+                        <td><i>The year of registration must be in full</i></td> 
+                    </tr> 
+                    <tr> 
+                        <td align="right"><b>Password:</b></td> 
+                        <td><input type="password" name="smisPass" /></td> 
+                        <td><i>Use National ID or Mobile No. as initial password</i></td> 
+                    </tr> 
+                    <tr> 
+                        <td colspan="3" align="center"> 
+                            <input type="submit" class="inputbutton" value="Login" />
+                        </td> 
+                    </tr> 
+                </table>
+            </fieldset> 
+        </form>
+
+        <div class="note-box">
+            <b>Note: Digits and Letters in your Student ID.</b>
+            <ul>
+                <li>Digit <b>0</b> (Zero) and NOT letter O</li>
+                <li>Letter <b>I</b> and NOT Digit 1</li>
+            </ul>
+        </div>
+
+        <form action="#" method="post"> 
+            <fieldset> 
+                <legend> Applicants / New Students</legend> 
+                <table border="0">
+                    <tr> 
+                        <td align="right"><b>Application Ref. No:</b></td> 
+                        <td><input type="text" name="applicationRefNo" /></td> 
+                        <td><i>Ref No. or Index No / Exam Year</i></td> 
+                    </tr> 
+                    <tr> 
+                        <td colspan="3" align="center"> 
+                            <input type="submit" class="inputbutton" value="Generate Letter of Offer" />
+                        </td> 
+                    </tr> 
+                </table>
+            </fieldset> 
+        </form>
+    </div>
+
+    <div id="footer">
+        <p>&copy; 2026 Mount Kenya University</p>
+    </div>
+</div>
+
+</body>
+</html>

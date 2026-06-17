@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Student Support & Registration System</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5.0.16/index.min.css" rel="stylesheet">
+  <script>
+    tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] }, colors: { primary: '#1e3a8a', accent: '#d97706', surface: '#f8fafc' } } } }
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; }
+    .fade-in { animation: fadeIn 0.4s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .typing-dot { animation: typing 1.4s infinite ease-in-out both; }
+    .typing-dot:nth-child(1) { animation-delay: 0s; }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes typing { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    .chat-msg { max-width: 80%; }
+    .toast { transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .toast.show { transform: translateX(0); }
+  </style>
+</head>
+<body class="bg-gray-50 text-slate-800 h-screen overflow-hidden">
+
+  <!-- Toast Container -->
+  <div id="toastContainer" class="fixed top-4 right-4 z-50 space-y-2"></div>
+
+  <!-- Login View -->
+  <div id="viewLogin" class="h-screen flex items-center justify-center bg-gradient-to-br from-primary to-blue-900">
+    <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md fade-in">
+      <div class="text-center mb-6">
+        <div class="w-16 h-16 mx-auto bg-primary/10 rounded-xl flex items-center justify-center mb-3">
+          <svg class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+        </div>
+        <h1 class="text-2xl font-bold text-slate-800">Eldoret Polytechnic</h1>
+        <p class="text-slate-500 text-sm mt-1">AI Student Support & Registration Portal</p>
+      </div>
+      <form id="loginForm" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Registration Number</label>
+          <input id="loginReg" type="text" value="BIT/2024/47510" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition" required>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Password</label>
+          <input type="password" value="student123" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition" required>
+        </div>
+        <button type="submit" class="w-full bg-primary text-white py-2.5 rounded-lg font-medium hover:bg-blue-900 transition flex justify-center items-center gap-2">
+          <span>Access Portal</span>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Main App Layout -->
+  <div id="viewApp" class="h-screen hidden flex">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-white border-r border-slate-200 hidden md:flex flex-col">
+      <div class="p-6 border-b border-slate-100">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-lg bg-primary text-white flex items-center justify-center font-bold text-sm">EP</div>
+          <div>
+            <div class="font-semibold text-slate-800">Student Portal</div>
+            <div class="text-xs text-slate-500">AI-Powered System</div>
+          </div>
+        </div>
+      </div>
+      <nav class="flex-1 p-4 space-y-1">
+        <button onclick="router.navigate('dashboard')" class="nav-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-primary transition active" data-target="dashboard">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+          Dashboard
+        </button>
+        <button onclick="router.navigate('chat')" class="nav-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-primary transition" data-target="chat">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+          AI Assistant
+        </button>
+        <button onclick="router.navigate('register')" class="nav-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-primary transition" data-target="register">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+          Course Registration
+        </button>
+        <button onclick="router.navigate('profile')" class="nav-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-primary transition" data-target="profile">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+          My Profile & Fees
+        </button>
+        <button onclick="router.navigate('faq')" class="nav-btn w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-primary transition" data-target="faq">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          Knowledge Base
+        </button>
+      </nav>
+      <div class="p-4 border-t border-slate-100">
+        <button onclick="auth.logout()" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium text-rose-600 hover:bg-rose-50 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+          Sign Out
+        </button>
+      </div>
+    </aside>
+
+    <!-- Mobile Header -->
+    <div class="md:hidden fixed top-0 left-0 right-0 bg-white border-b border-slate-200 z-40 px-4 py-3 flex justify-between items-center">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center font-bold text-xs">EP</div>
+        <span class="font-semibold text-slate-800">Student Portal</span>
+      </div>
+      <button onclick="toggleMobileMenu()" class="p-2 rounded-lg hover:bg-slate-100">
+        <svg class="w-6 h-6 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+      </button>
+    </div>
+
+    <!-- Mobile Menu -->
+    <div id="mobileMenu" class="md:hidden fixed inset-0 bg-black/40 z-50 hidden">
+      <div class="bg-white w-64 h-full p-4 pt-16 shadow-xl space-y-2 fade-in">
+        <button onclick="router.navigate('dashboard'); toggleMobileMenu()" class="w-full text-left px-4 py-3 rounded-lg hover:bg-slate-50 text-slate-700 font-medium">Dashboard</button>
+        <button onclick="router.navigate('chat'); toggleMobileMenu()" class="w-full text-left px-4 py-3 rounded-lg hover:bg-slate-50 text-slate-700 font-medium">AI Assistant</button>
+        <button onclick="router.navigate('register'); toggleMobileMenu()" class="w-full text-left px-4 py-3 rounded-lg hover:bg-slate-50 text-slate-700 font-medium">Course Registration</button>
+        <button onclick="router.navigate('profile'); toggleMobileMenu()" class="w-full text-left px-4 py-3 rounded-lg hover:bg-slate-50 text-slate-700 font-medium">My Profile</button>
+        <button onclick="router.navigate('faq'); toggleMobileMenu()" class="w-full text-left px-4 py-3 rounded-lg hover:bg-slate-50 text-slate-700 font-medium">Knowledge Base</button>
+        <button onclick="auth.logout(); toggleMobileMenu()" class="w-full text-left px-4 py-3 rounded-lg hover:bg-slate-50 text-rose-600 font-medium">Sign Out</button>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto bg-gray-50 pt-14 md:pt-0">
+      <!-- Dashboard View -->
+      <div id="pageDashboard" class="view-page p-6 max-w-6xl mx-auto space-y-6 fade-in">
+        <div class="flex justify-between items-center">
+          <h1 class="text-2xl font-bold text-slate-800">Welcome, <span id="dashName">Student</span></h1>
+          <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">Academic Year: 2024/2025</span>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+            <div class="flex justify-between items-start mb-3">
+              <div class="p-2 bg-blue-50 rounded-lg"><svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg></div>
+              <span class="text-xs font-medium text-slate-500">Registered</span>
+            </div>
+            <div class="text-2xl font-bold text-slate-800" id="dashRegCount">0</div>
+            <div class="text-sm text-slate-500 mt-1">Courses this semester</div>
+          </div>
+          <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+            <div class="flex justify-between items-start mb-3">
+              <div class="p-2 bg-amber-50 rounded-lg"><svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
+              <span class="text-xs font-medium text-slate-500">Balance</span>
+            </div>
+            <div class="text-2xl font-bold text-slate-800">KES <span id="dashFee">0</span></div>
+            <div class="text-sm text-slate-500 mt-1">Outstanding fee balance</div>
+          </div>
+          <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+            <div class="flex justify-between items-start mb-3">
+              <div class="p-2 bg-emerald-50 rounded-lg"><svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
+              <span class="text-xs font-medium text-slate-500">GPA</span>
+            </div>
+            <div class="text-2xl font-bold text-slate-800" id="dashGPA">0.00</div>
+            <div class="text-sm text-slate-500 mt-1">Cumulative Grade Point</div>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div class="lg:col-span-2 bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+            <h3 class="font-semibold text-slate-800 mb-4">AI Course Recommendations</h3>
+            <div id="dashRecs" class="space-y-3">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+          <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+            <h3 class="font-semibold text-slate-800 mb-4">Quick Actions</h3>
+            <div class="space-y-3">
+              <button onclick="router.navigate('chat')" class="w-full flex items-center gap-3 p-3 bg-slate-50 hover:bg-slate-100 rounded-lg transition text-left">
+                <div class="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg></div>
+                <span class="text-sm font-medium text-slate-700">Chat with AI Assistant</span>
+              </button>
+              <button onclick="router.navigate('register')" class="w-full flex items-center gap-3 p-3 bg-slate-50 hover:bg-slate-100 rounded-lg transition text-left">
+                <div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg></div>
+                <span class="text-sm font-medium text-slate-700">Register New Courses</span>
+              </button>
+              <button onclick="router.navigate('profile')" class="w-full flex items-center gap-3 p-3 bg-slate-50 hover:bg-slate-100 rounded-lg transition text-left">
+                <div class="w-8 h-8 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg></div>
+                <span class="text-sm font-medium text-slate-700">View Fee Statement</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chat View -->
+      <div id="pageChat" class="view-page h-[calc(100vh-56px)] md:h-screen flex flex-col hidden fade-in">
+        <div class="bg-white border-b border-slate-200 p-4 flex justify-between items-center">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+            </div>
+            <div>
+              <h2 class="font-semibold text-slate-800">Academic AI Assistant</h2>
+              <div class="flex items-center gap-1 text-xs text-green-600"><span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Online • Powered by NLP & ML</div>
+            </div>
+          </div>
+          <button onclick="chatBot.clearHistory()" class="text-xs text-slate-500 hover:text-slate-700">Clear Chat</button>
+        </div>
+        <div id="chatContainer" class="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
+          <div class="flex justify-center"><span class="bg-slate-200 text-slate-600 px-3 py-1 rounded-full text-xs">Today</span></div>
+        </div>
+        <div class="p-4 bg-white border-t border-slate-200">
+          <div class="flex gap-3">
+            <input id="chatInput" type="text" placeholder="Ask about registration, fees, prerequisites..." class="flex-1 border border-slate-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition" autocomplete="off">
+            <button onclick="chatBot.send()" class="bg-primary text-white px-5 rounded-xl hover:bg-blue-900 transition font-medium flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+            </button>
+          </div>
+          <div class="mt-2 flex gap-2 overflow-x-auto pb-1">
+            <button onclick="chatBot.quickReply('Check my fee balance')" class="whitespace-nowrap px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-full text-xs text-slate-600 transition">💰 Check fees</button>
+            <button onclick="chatBot.quickReply('Recommend courses for me')" class="whitespace-nowrap px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-full text-xs text-slate-600 transition">🎯 Get recommendations</button>
+            <button onclick="chatBot.quickReply('How do I register?')" class="whitespace-nowrap px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-full text-xs text-slate-600 transition">📝 Registration steps</button>
+            <button onclick="chatBot.quickReply('BIT 2401 prerequisites?')" class="whitespace-nowrap px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-full text-xs text-slate-600 transition">📚 Prerequisites</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Registration View -->
+      <div id="pageRegister" class="view-page p-6 max-w-5xl mx-auto hidden fade-in">
+        <h2 class="text-2xl font-bold text-slate-800 mb-6">Course Registration</h2>
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div class="p-4 border-b border-slate-100 flex flex-wrap gap-3 items-center justify-between">
+            <div class="relative">
+              <input id="regSearch" type="text" placeholder="Search course code or name..." class="pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none w-64">
+              <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            </div>
+            <div class="flex gap-2 text-sm">
+              <span class="px-3 py-1 bg-green-100 text-green-700 rounded-lg">Enrolled: <span id="regEnrolledCount">0</span>/4</span>
+              <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg">Credits: <span id="regCreditCount">0</span></span>
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left">
+              <thead class="bg-slate-50 text-slate-600 font-medium">
+                <tr><th class="p-4">Code</th><th class="p-4">Course</th><th class="p-4">Schedule</th><th class="p-4">Capacity</th><th class="p-4">Prerequisites</th><th class="p-4 text-right">Action</th></tr>
+              </thead>
+              <tbody id="regTableBody" class="divide-y divide-slate-100">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Profile View -->
+      <div id="pageProfile" class="view-page p-6 max-w-4xl mx-auto hidden fade-in">
+        <h2 class="text-2xl font-bold text-slate-800 mb-6">Student Profile & Financials</h2>
+        <div class="grid md:grid-cols-2 gap-6">
+          <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+            <h3 class="font-semibold text-slate-800 mb-4 border-b pb-2">Academic Profile</h3>
+            <div class="space-y-3 text-sm">
+              <div class="flex justify-between"><span class="text-slate-500">Registration No:</span><span class="font-medium" id="profReg">-</span></div>
+              <div class="flex justify-between"><span class="text-slate-500">Full Name:</span><span class="font-medium" id="profName">-</span></div>
+              <div class="flex justify-between"><span class="text-slate-500">Program:</span><span class="font-medium" id="profProgram">-</span></div>
+              <div class="flex justify-between"><span class="text-slate-500">Current Year:</span><span class="font-medium" id="profYear">-</span></div>
+              <div class="flex justify-between"><span class="text-slate-500">Status:</span><span class="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">Active</span></div>
+            </div>
+          </div>
+          <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+            <h3 class="font-semibold text-slate-800 mb-4 border-b pb-2">Financial Statement</h3>
+            <div class="space-y-3 text-sm">
+              <div class="flex justify-between"><span class="text-slate-500">Total Tuition (Semester):</span><span class="font-medium">KES 45,000</span></div>
+              <div class="flex justify-between"><span class="text-slate-500">Amount Paid:</span><span class="font-medium text-green-600">KES 20,000</span></div>
+              <div class="flex justify-between border-t pt-2 mt-2"><span class="text-slate-700 font-semibold">Balance Due:</span><span class="font-bold text-rose-600">KES <span id="profBalance">25,000</span></span></div>
+              <div class="mt-3 text-xs text-slate-500 bg-amber-50 p-2 rounded">Note: Registration is restricted if fee balance exceeds 30%. Clear balance at the finance office or via bank transfer.</div>
+            </div>
+          </div>
+        </div>
+        <div class="mt-6 bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+          <h3 class="font-semibold text-slate-800 mb-4">Current Semester Courses</h3>
+          <ul id="profCourses" class="space-y-2 text-sm text-slate-600">
+            <li>No courses registered yet.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- FAQ View -->
+      <div id="pageFaq" class="view-page p-6 max-w-4xl mx-auto hidden fade-in">
+        <h2 class="text-2xl font-bold text-slate-800 mb-6">Knowledge Base & Institutional Policies</h2>
+        <div class="space-y-4" id="faqContainer">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // --- Mock Data & State ---
+    const db = {
+      student: { reg: "BIT/2024/47510", name: "Dorcas Jerotich Kosgei", email: "d.kosgei@mkue.ac.ke", program: "BIT", year: 2, gpa: 3.4, completedCourses: ["BIT 1101", "BIT 1103", "BIT 1201", "BIT 1301"], registeredCourses: [], feeBalance: 25000 },
+      courses: [
+        { code: "BIT 2101", name: "Database Systems", credits: 3, prereqs: ["BIT 1101"], schedule: { day: "Mon", time: "08:00-10:00" }, capacity: 45, enrolled: 42 },
+        { code: "BIT 2201", name: "Web Development II", credits: 3, prereqs: ["BIT 1201"], schedule: { day: "Tue", time: "10:00-12:00" }, capacity: 50, enrolled: 48 },
+        { code: "BIT 2301", name: "Networking Fundamentals", credits: 3, prereqs: [], schedule: { day: "Wed", time: "14:00-16:00" }, capacity: 40, enrolled: 35 },
+        { code: "BIT 2401", name: "Machine Learning Basics", credits: 3, prereqs: ["BIT 2101", "BIT 1103"], schedule: { day: "Mon", time: "10:30-12:30" }, capacity: 30, enrolled: 30 },
+        { code: "BIT 2501", name: "Project Management", credits: 3, prereqs: [], schedule: { day: "Thu", time: "09:00-11:00" }, capacity: 60, enrolled: 20 },
+        { code: "BIT 2601", name: "Software Engineering", credits: 3, prereqs: ["BIT 1103"], schedule: { day: "Tue", time: "08:00-10:00" }, capacity: 40, enrolled: 38 }
+      ],
+      faq: [
+        { q: "What are the registration deadlines for this semester?", a: "Registration opens on January 15 and closes on February 28, 2026. Late registrations after the deadline will incur a 10% penalty fee and require Dean's approval." },
+        { q: "How do I check my prerequisite status?", a: "Prerequisites are automatically verified by the system during registration. You can also view completed units in your Profile tab. The AI Assistant can check specific course requirements on demand." },
+        { q: "What happens if I fail a course required as a prerequisite?", a: "You must retake and pass the prerequisite before enrolling in the advanced course. The system blocks registration until prerequisites are met. Academic advising is recommended for alternative pathways." },
+        { q: "How are fee payments processed?", a: "Payments can be made via M-PESA (Paybill: 880020), Bank Transfer to KCB Account 1234567890, or at the Finance Office. Receipts are uploaded to the SIS within 24 hours." },
+        { q: "Can I register for more than 4 courses per semester?", a: "Standard load is 4 courses (12 credits). Overload requests (up to 5 courses) require a minimum GPA of 3.5 and approval from the Head of Department." },
+        { q: "How do I drop a registered course?", a: "Course drops are allowed within the first two weeks of the semester via the portal. After the add/drop period, a formal form must be submitted to the Academic Registry." }
+      ]
+    };
+
+    // --- Core Engine ---
+    const state = { ...db.student, currentView: 'login' };
+
+    const router = {
+      navigate: (page) => {
+        state.currentView = page;
+        document.querySelectorAll('.view-page').forEach(el => el.classList.add('hidden'));
+        document.getElementById(`page${page.charAt(0).toUpperCase() + page.slice(1)}`).classList.remove('hidden');
+        
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+          btn.classList.toggle('bg-slate-50', btn.dataset.target === page);
+          btn.classList.toggle('text-primary', btn.dataset.target === page);
+        });
+
+        if(page === 'dashboard') ui.updateDashboard();
+        if(page === 'chat') chatBot.scrollToBottom();
+        if(page === 'register') reg.renderTable();
+        if(page === 'profile') ui.updateProfile();
+        if(page === 'faq') ui.renderFaq();
+      }
+    };
+
+    const auth = {
+      login: (reg) => {
+        state.reg = reg;
+        document.getElementById('viewLogin').classList.add('hidden');
+        document.getElementById('viewApp').classList.remove('hidden');
+        router.navigate('dashboard');
+        chatBot.addBotMessage(`Welcome back, ${state.name}. I'm your AI academic assistant. How can I help you today?`);
+      },
+      logout: () => {
+        location.reload();
+      }
+    };
+
+    const ui = {
+      updateDashboard: () => {
+        document.getElementById('dashName').textContent = state.name.split(' ')[0];
+        document.getElementById('dashRegCount').textContent = state.registeredCourses.length;
+        document.getElementById('dashFee').textContent = state.feeBalance.toLocaleString();
+        document.getElementById('dashGPA').textContent = state.gpa.toFixed(2);
+        
+        const recs = ui.getRecommendations();
+        const recContainer = document.getElementById('dashRecs');
+        recContainer.innerHTML = recs.map(c => `
+          <div class="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100 hover:border-primary/30 transition cursor-pointer" onclick="reg.enrollCourse('${c.code}')">
+            <div class="flex-1">
+              <div class="font-medium text-sm text-slate-800">${c.code} - ${c.name}</div>
+              <div class="text-xs text-slate-500">${c.schedule.day} ${c.time} • ${c.credits} Credits</div>
+            </div>
+            <span class="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded">Recommended</span>
+          </div>
+        `).join('');
+      },
+      getRecommendations: () => {
+        return db.courses.filter(c => 
+          !state.registeredCourses.includes(c.code) && 
+          c.prereqs.every(p => state.completedCourses.includes(p))
+        ).slice(0, 3);
+      },
+      updateProfile: () => {
+        document.getElementById('profReg').textContent = state.reg;
+        document.getElementById('profName').textContent = state.name;
+        document.getElementById('profProgram').textContent = state.program;
+        document.getElementById('profYear').textContent = state.year;
+        document.getElementById('profBalance').textContent = state.feeBalance.toLocaleString();
+        const list = document.getElementById('profCourses');
+        list.innerHTML = state.registeredCourses.length > 0 
+          ? state.registeredCourses.map(code => {
+              const c = db.courses.find(x => x.code === code);
+              return `<li class="flex justify-between py-2 border-b border-slate-100"><span class="font-medium text-slate-700">${c.code}: ${c.name}</span><span class="text-slate-500">${c.credits} cr</span></li>`;
+            }).join('')
+          : '<li class="text-slate-500 italic">No courses registered yet. Visit Registration tab.</li>';
+      },
+      renderFaq: () => {
+        document.getElementById('faqContainer').innerHTML = db.faq.map(f => `
+          <details class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm group">
+            <summary class="font-medium text-slate-800 cursor-pointer list-none flex justify-between items-center hover:text-primary transition">
+              ${f.q}
+              <svg class="w-5 h-5 text-slate-400 group-open:rotate-180 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </summary>
+            <p class="mt-2 text-sm text-slate-600 leading-relaxed">${f.a}</p>
+          </details>
+        `).join('');
+      },
+      showToast: (msg, type = 'success') => {
+        const toast = document.createElement('div');
+        toast.className = `toast px-4 py-3 rounded-lg shadow-lg text-sm font-medium flex items-center gap-2 ${type === 'success' ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'}`;
+        toast.innerHTML = `${type === 'success' ? '✓' : '⚠'} ${msg}`;
+        document.getElementById('toastContainer').appendChild(toast);
+        setTimeout(() => toast.classList.add('show'), 10);
+        setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 3000);
+      }
+    };
+
+    // --- Registration Logic ---
+    const reg = {
+      renderTable: (filter = '') => {
+        const tbody = document.getElementById('regTableBody');
+        const filtered = db.courses.filter(c => 
+          c.code.toLowerCase().includes(filter.toLowerCase()) || 
+          c.name.toLowerCase().includes(filter.toLowerCase())
+        );
+        document.getElementById('regEnrolledCount').textContent = state.registeredCourses.length;
+        document.getElementById('regCreditCount').textContent = state.registeredCourses.reduce((sum, code) => sum + db.courses.find(c=>c.code===code).credits, 0);
+        
+        tbody.innerHTML = filtered.map(c => {
+          const isRegistered = state.registeredCourses.includes(c.code);
+          const hasPrereqs = c.prereqs.every(p => state.completedCourses.includes(p) || state.registeredCourses.includes(p));
+          const hasSpace = c.enrolled < c.capacity;
+          const canReg = !isRegistered && hasPrereqs && hasSpace;
+          
+          let statusBadge = '';
+          if(isRegistered) statusBadge = '<span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">Registered</span>';
+          else if(!hasPrereqs) statusBadge = '<span class="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded">Missing Prereqs</span>';
+          else if(!hasSpace) statusBadge = '<span class="text-xs bg-rose-100 text-rose-700 px-2 py-1 rounded">Full</span>';
+          else statusBadge = '<span class="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded">Available</span>';
+
+          return `
+            <tr class="hover:bg-slate-50 transition">
+              <td class="p-4 font-medium text-slate-800">${c.code}</td>
+              <td class="p-4">${c.name}</td>
+              <td class="p-4 text-slate-500">${c.schedule.day} ${c.schedule.time}</td>
+              <td class="p-4">
+                <div class="w-24 h-2 bg-slate-200 rounded-full overflow-hidden">
+                  <div class="h-full ${c.enrolled/c.capacity > 0.8 ? 'bg-amber-500' : 'bg-primary'}" style="width: ${(c.enrolled/c.capacity)*100}%"></div>
+                </div>
+                <div class="text-xs text-slate-500 mt-1">${c.enrolled}/${c.capacity}</div>
+              </td>
+              <td class="p-4 text-xs text-slate-500">${c.prereqs.length > 0 ? c.prereqs.join(', ') : 'None'}</td>
+              <td class="p-4 text-right">
+                ${statusBadge}
+                ${canReg ? `<button onclick="reg.enrollCourse('${c.code}')" class="ml-2 px-3 py-1 bg-primary text-white rounded-lg text-xs hover:bg-blue-900 transition">Enroll</button>` : ''}
+              </td>
+            </tr>`;
+        }).join('');
+      },
+      enrollCourse: (code) => {
+        if(state.registeredCourses.includes(code)) { ui.showToast('Already registered for this course.', 'error'); return; }
+        if(state.registeredCourses.length >= 4) { ui.showToast('Maximum limit of 4 courses reached.', 'error'); return; }
+        if(state.feeBalance > 30000) { ui.showToast('Registration blocked: Fee balance exceeds 30% limit.', 'error'); router.navigate('profile'); return; }
+
+        const c = db.courses.find(x => x.code === code);
+        const missingPrereqs = c.prereqs.filter(p => !state.completedCourses.includes(p) && !state.registeredCourses.includes(p));
+        if(missingPrereqs.length > 0) { ui.showToast(`Missing prerequisites: ${missingPrereqs.join(', ')}`, 'error'); return; }
+
+        const conflict = state.registeredCourses.some(rc => {
+          const existing = db.courses.find(x => x.code === rc);
+          return existing.schedule.day === c.schedule.day && 
+                 (existing.schedule.time.includes(c.schedule.time.split('-')[0]) || c.schedule.time.includes(existing.schedule.time.split('-')[0]));
+        });
+        if(conflict) { ui.showToast('Schedule conflict detected with another registered course.', 'error'); return; }
+
+        state.registeredCourses.push(code);
+        c.enrolled++;
+        ui.showToast(`Successfully registered for ${code}`);
+        reg.renderTable(document.getElementById('regSearch').value);
+        router.navigate('dashboard');
+      }
+    };
+
+    // --- Chatbot Engine ---
+    const chatBot = {
+      container: document.getElementById('chatContainer'),
+      input: document.getElementById('chatInput'),
+      addBotMessage: (text, typingDelay = 800) => {
+        const msg = document.createElement('div');
+        msg.className = 'flex justify-start';
+        msg.innerHTML = `
+          <div class="chat-msg bg-white p-3 rounded-2xl rounded-tl-none border border-slate-200 shadow-sm text-sm text-slate-700">
+            <div id="typingIndicator" class="flex gap-1 py-1">
+              <div class="w-1.5 h-1.5 bg-slate-400 rounded-full typing-dot"></div>
+              <div class="w-1.5 h-1.5 bg-slate-400 rounded-full typing-dot"></div>
+              <div class="w-1.5 h-1.5 bg-slate-400 rounded-full typing-dot"></div>
+            </div>
+          </div>
+        `;
+        chatBot.container.appendChild(msg);
+        chatBot.scrollToBottom();
+
+        setTimeout(() => {
+          const indicator = msg.querySelector('#typingIndicator');
+          if(indicator) indicator.remove();
+          msg.querySelector('.chat-msg').innerHTML += `<span class="block">${text}</span><div class="text-xs text-slate-400 mt-1 text-right">AI Assistant • ${new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>`;
+          chatBot.scrollToBottom();
+        }, typingDelay);
+      },
+      addUserMessage: (text) => {
+        const msg = document.createElement('div');
+        msg.className = 'flex justify-end';
+        msg.innerHTML = `<div class="chat-msg bg-primary text-white p-3 rounded-2xl rounded-tr-none text-sm">${text}<div class="text-xs text-blue-200 mt-1 text-right">You • ${new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div></div>`;
+        chatBot.container.appendChild(msg);
+        chatBot.scrollToBottom();
+      },
+      scrollToBottom: () => { chatBot.container.scrollTop = chatBot.container.scrollHeight; },
+      clearHistory: () => { chatBot.container.innerHTML = '<div class="flex justify-center"><span class="bg-slate-200 text-slate-600 px-3 py-1 rounded-full text-xs">Today</span></div>'; chatBot.addBotMessage("Chat history cleared. How can I help you?", 400); },
+      quickReply: (text) => { chatBot.input.value = text; chatBot.send(); },
+      send: () => {
+        const text = chatBot.input.value.trim();
+        if(!text) return;
+        chatBot.addUserMessage(text);
+        chatBot.input.value = '';
+        chatBot.processIntent(text.toLowerCase());
+      },
+      processIntent: (txt) => {
+        // Intent Matching
+        let response = "I'm not sure about that. Try asking about registration steps, fee balances, prerequisites, or course recommendations.";
+        
+        if(txt.includes('hello') || txt.includes('hi') || txt.includes('hey')) response = `Hello, ${state.name.split(' ')[0]}! I'm your AI academic assistant. I can help you register for courses, check prerequisites, view your fee balance, or suggest units based on your progress.`;
+        else if(txt.includes('fee') || txt.includes('balance') || txt.includes('pay')) response = `Your current fee balance is <strong>KES ${state.feeBalance.toLocaleString()}</strong>. Registration requires a balance under KES 30,000. You can clear it via M-PESA Paybill 880020 or at the Finance Office.`;
+        else if(txt.includes('register') || txt.includes('how to enroll')) response = `To register: 1) Go to the <strong>Course Registration</strong> tab. 2) Click 'Enroll' next to your desired course. 3) The system automatically validates prerequisites and schedule conflicts. 4) You can register up to 4 courses per semester.`;
+        else if(txt.includes('recommend') || txt.includes('suggest')) {
+          const recs = ui.getRecommendations();
+          response = recs.length > 0 
+            ? `Based on your GPA (${state.gpa}) and completed units, I recommend:<br><br>📚 ${recs.map(c => `<strong>${c.code}</strong> (${c.name}) - ${c.schedule.day} ${c.schedule.time}`).join('<br>')}<br><br><em>Click 'Enroll' in the registration tab or type 'Enroll [CODE]' here.</em>`
+            : `You've completed your recommended load for this semester. Focus on excelling in your current units!`;
+        }
+        else if(txt.includes('prerequisite') || txt.includes('prereq')) {
+          const codeMatch = txt.match(/(bit\s\d{4})/i);
+          const target = codeMatch ? db.courses.find(c => c.code.toUpperCase() === codeMatch[1].toUpperCase()) : null;
+          response = target 
+            ? `📖 <strong>${target.code}</strong> requires: ${target.prereqs.length > 0 ? target.prereqs.join(', ') : 'No prerequisites'}.<br>You have ${target.prereqs.filter(p => state.completedCourses.includes(p)).length}/${target.prereqs.length} completed.`
+            : "Please specify a course code (e.g., 'BIT 2401 prerequisites').";
+        }
+        else if(txt.startsWith('enroll') || txt.startsWith('register')) {
+          const codeMatch = txt.match(/(bit\s\d{4})/i);
+          if(codeMatch) {
+            const code = codeMatch[1].toUpperCase();
+            response = `Processing enrollment for ${code}...`;
+            setTimeout(() => {
+              reg.enrollCourse(code);
+              chatBot.addBotMessage(state.registeredCourses.includes(code) ? `✅ Successfully enrolled in ${code}! Your schedule has been updated.` : `⚠️ Unable to enroll in ${code}. Check prerequisites, capacity, or fee balance.`, 600);
+            }, 1000);
+            return;
+          }
+        }
+        else if(txt.includes('deadline') || txt.includes('date')) response = "Registration for Semester 2, 2025/2026 runs from <strong>Jan 15 - Feb 28, 2026</strong>. Late registrations after this date require Dean's approval.";
+        else if(txt.includes('drop') || txt.includes('remove')) response = "You can drop courses within the first 14 days of the semester via the portal. After that, visit the Academic Registry with a signed drop form.";
+
+        chatBot.addBotMessage(response);
+      }
+    };
+
+    // --- Init & Events ---
+    document.getElementById('loginForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      auth.login(document.getElementById('loginReg').value);
+    });
+
+    document.getElementById('regSearch').addEventListener('input', (e) => {
+      reg.renderTable(e.target.value);
+    });
+
+    chatBot.input.addEventListener('keypress', (e) => {
+      if(e.key === 'Enter') chatBot.send();
+    });
+
+    function toggleMobileMenu() {
+      const menu = document.getElementById('mobileMenu');
+      menu.classList.toggle('hidden');
+      if(!menu.classList.contains('hidden')) {
+        const bg = document.createElement('div');
+        bg.id = 'menuOverlay';
+        bg.className = 'absolute inset-0 bg-black/20';
+        menu.insertBefore(bg, menu.firstChild);
+        bg.addEventListener('click', toggleMobileMenu);
+      }
+    }
+  </script>
+</body>
+</html>
+

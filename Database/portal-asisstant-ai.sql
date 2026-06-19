@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 15, 2026 at 11:36 AM
+-- Generation Time: Jun 19, 2026 at 06:04 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -1763,7 +1763,9 @@ INSERT INTO `chat_messages` (`id`, `conversation_id`, `sender_type`, `message`, 
 (274, 'pudfhgt73d573a8ot7id3mg4mu', 'student', 'hi', '2026-04-11 14:18:02', NULL),
 (275, 'pudfhgt73d573a8ot7id3mg4mu', 'bot', 'hi too', '2026-04-11 14:18:02', NULL),
 (276, '6fja002gl5is4ju7ff57rp5efu', 'student', 'hi', '2026-04-15 06:12:40', NULL),
-(277, '6fja002gl5is4ju7ff57rp5efu', 'bot', 'hi too', '2026-04-15 06:12:40', NULL);
+(277, '6fja002gl5is4ju7ff57rp5efu', 'bot', 'hi too', '2026-04-15 06:12:40', NULL),
+(278, 'ievkvl88vhhre13fjpf6v8k2m8', 'student', 'hi', '2026-06-15 18:11:36', NULL),
+(279, 'ievkvl88vhhre13fjpf6v8k2m8', 'bot', 'hi too', '2026-06-15 18:11:36', NULL);
 
 -- --------------------------------------------------------
 
@@ -1792,6 +1794,126 @@ CREATE TABLE `course_materials` (
 INSERT INTO `course_materials` (`id`, `unit_code`, `title`, `description`, `file_path`, `youtube_url`, `video_id`, `file_type`, `material_type`, `uploaded_by`, `uploaded_at`) VALUES
 (1, 'BIT3206', 'Notes', 'read ad write short notes', '1775885202_s.pdf', NULL, NULL, 'pdf', 'file', 'Arfican', '2026-04-11 08:26:42'),
 (2, 'BBM2103', ' nmbm', ' nm ', '1775916886_1775897256_BIT_2026_00005_5.docx', NULL, NULL, 'docx', 'file', 'Arfican', '2026-04-11 17:14:46');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `fees_structure`
+--
+
+CREATE TABLE `fees_structure` (
+  `id` int(11) NOT NULL,
+  `year` int(11) NOT NULL,
+  `semester` int(11) NOT NULL,
+  `year_level` varchar(20) NOT NULL,
+  `category` varchar(50) NOT NULL,
+  `amount` decimal(10,2) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `fees_structure`
+--
+
+INSERT INTO `fees_structure` (`id`, `year`, `semester`, `year_level`, `category`, `amount`, `created_at`) VALUES
+(1, 2024, 1, 'First Year', 'Tuition', 25000.00, '2026-06-08 16:55:23'),
+(2, 2024, 1, 'First Year', 'Registration', 5000.00, '2026-06-08 16:55:23'),
+(3, 2024, 1, 'First Year', 'Library', 3000.00, '2026-06-08 16:55:23'),
+(4, 2024, 1, 'First Year', 'ICT', 2000.00, '2026-06-08 16:55:23'),
+(5, 2024, 1, 'First Year', 'Activity', 1500.00, '2026-06-08 16:55:23'),
+(6, 2024, 1, 'Second Year', 'Tuition', 25000.00, '2026-06-08 16:55:23'),
+(7, 2024, 1, 'Second Year', 'Registration', 5000.00, '2026-06-08 16:55:23'),
+(8, 2024, 1, 'Second Year', 'Library', 3000.00, '2026-06-08 16:55:23'),
+(9, 2024, 1, 'Second Year', 'ICT', 2000.00, '2026-06-08 16:55:23'),
+(10, 2024, 1, 'Second Year', 'Activity', 1500.00, '2026-06-08 16:55:23'),
+(11, 2024, 1, 'Third Year', 'Tuition', 25000.00, '2026-06-08 16:55:23'),
+(12, 2024, 1, 'Third Year', 'Registration', 5000.00, '2026-06-08 16:55:23'),
+(13, 2024, 1, 'Third Year', 'Library', 3000.00, '2026-06-08 16:55:23'),
+(14, 2024, 1, 'Third Year', 'ICT', 2000.00, '2026-06-08 16:55:23'),
+(15, 2024, 1, 'Third Year', 'Activity', 1500.00, '2026-06-08 16:55:23'),
+(16, 2024, 1, 'Fourth Year', 'Tuition', 25000.00, '2026-06-08 16:55:23'),
+(17, 2024, 1, 'Fourth Year', 'Registration', 5000.00, '2026-06-08 16:55:23'),
+(18, 2024, 1, 'Fourth Year', 'Library', 3000.00, '2026-06-08 16:55:23'),
+(19, 2024, 1, 'Fourth Year', 'ICT', 2000.00, '2026-06-08 16:55:23'),
+(20, 2024, 1, 'Fourth Year', 'Activity', 1500.00, '2026-06-08 16:55:23');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `payment_transactions`
+--
+
+CREATE TABLE `payment_transactions` (
+  `id` int(11) NOT NULL,
+  `transaction_id` varchar(100) NOT NULL,
+  `student_reg_no` varchar(50) NOT NULL,
+  `amount` decimal(10,2) NOT NULL,
+  `payment_method` enum('mpesa','bank','cash','card') NOT NULL,
+  `payment_reference` varchar(100) DEFAULT NULL,
+  `payment_date` date NOT NULL,
+  `receipt_no` varchar(50) DEFAULT NULL,
+  `status` enum('pending','completed','failed','refunded') DEFAULT 'pending',
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `verified_by` varchar(50) DEFAULT NULL,
+  `verified_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `payment_transactions`
+--
+
+INSERT INTO `payment_transactions` (`id`, `transaction_id`, `student_reg_no`, `amount`, `payment_method`, `payment_reference`, `payment_date`, `receipt_no`, `status`, `notes`, `created_at`, `verified_by`, `verified_at`) VALUES
+(1, 'FEES-17809444222578', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094442357768', 'completed', 'M-Pesa Payment', '2026-06-08 18:47:03', NULL, NULL),
+(2, 'FEES-17809444273045', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094442854766', 'completed', 'M-Pesa Payment', '2026-06-08 18:47:08', NULL, NULL),
+(3, 'FEES-17809444319648', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094443237849', 'completed', 'M-Pesa Payment', '2026-06-08 18:47:12', NULL, NULL),
+(4, 'FEES-17809444406524', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094444130868', 'completed', 'M-Pesa Payment', '2026-06-08 18:47:21', NULL, NULL),
+(5, 'FEES-17809444465460', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094444716957', 'completed', 'M-Pesa Payment', '2026-06-08 18:47:27', NULL, NULL),
+(6, 'FEES-17809444519274', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094445232043', 'completed', 'M-Pesa Payment', '2026-06-08 18:47:32', NULL, NULL),
+(7, 'FEES-17809444556658', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094445668460', 'completed', 'M-Pesa Payment', '2026-06-08 18:47:36', NULL, NULL),
+(8, 'FEES-17809444595900', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094446032283', 'completed', 'M-Pesa Payment', '2026-06-08 18:47:40', NULL, NULL),
+(9, 'FEES-17809444647570', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094446572690', 'completed', 'M-Pesa Payment', '2026-06-08 18:47:45', NULL, NULL),
+(10, 'FEES-17809444689598', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094446991065', 'completed', 'M-Pesa Payment', '2026-06-08 18:47:49', NULL, NULL),
+(11, 'FEES-17809444734801', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094447487498', 'completed', 'M-Pesa Payment', '2026-06-08 18:47:54', NULL, NULL),
+(12, 'FEES-17809444778758', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094447845520', 'completed', 'M-Pesa Payment', '2026-06-08 18:47:58', NULL, NULL),
+(13, 'FEES-17809444828180', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094448314523', 'completed', 'M-Pesa Payment', '2026-06-08 18:48:03', NULL, NULL),
+(14, 'FEES-17809444865490', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094448783440', 'completed', 'M-Pesa Payment', '2026-06-08 18:48:07', NULL, NULL),
+(15, 'FEES-17809444915509', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094449221929', 'completed', 'M-Pesa Payment', '2026-06-08 18:48:12', NULL, NULL),
+(16, 'FEES-17809444959908', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094449622528', 'completed', 'M-Pesa Payment', '2026-06-08 18:48:16', NULL, NULL),
+(17, 'FEES-17809445005353', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094450189365', 'completed', 'M-Pesa Payment', '2026-06-08 18:48:21', NULL, NULL),
+(18, 'FEES-17809445049120', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094450540171', 'completed', 'M-Pesa Payment', '2026-06-08 18:48:25', NULL, NULL),
+(19, 'FEES-17809445097677', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094451026899', 'completed', 'M-Pesa Payment', '2026-06-08 18:48:30', NULL, NULL),
+(20, 'FEES-17809445139263', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094451577014', 'completed', 'M-Pesa Payment', '2026-06-08 18:48:35', NULL, NULL),
+(21, 'FEES-17809445188219', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094451938739', 'completed', 'M-Pesa Payment', '2026-06-08 18:48:39', NULL, NULL),
+(22, 'FEES-17809445239450', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094452439878', 'completed', 'M-Pesa Payment', '2026-06-08 18:48:44', NULL, NULL),
+(23, 'FEES-17809445473360', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094454892627', 'completed', 'M-Pesa Payment', '2026-06-08 18:49:08', NULL, NULL),
+(24, 'FEES-17809445536408', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094455437711', 'completed', 'M-Pesa Payment', '2026-06-08 18:49:14', NULL, NULL),
+(25, 'FEES-17809445738826', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094457421032', 'completed', 'M-Pesa Payment', '2026-06-08 18:49:34', NULL, NULL),
+(26, 'FEES-17809445789140', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094457961807', 'completed', 'M-Pesa Payment', '2026-06-08 18:49:39', NULL, NULL),
+(27, 'FEES-17809445832881', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094458412386', 'completed', 'M-Pesa Payment', '2026-06-08 18:49:44', NULL, NULL),
+(28, 'FEES-17809445897156', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094459096453', 'completed', 'M-Pesa Payment', '2026-06-08 18:49:50', NULL, NULL),
+(29, 'FEES-17809445941050', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094459551667', 'completed', 'M-Pesa Payment', '2026-06-08 18:49:55', NULL, NULL),
+(30, 'FEES-17809445995841', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094460068067', 'completed', 'M-Pesa Payment', '2026-06-08 18:50:00', NULL, NULL),
+(31, 'FEES-17809446128870', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094461326252', 'completed', 'M-Pesa Payment', '2026-06-08 18:50:13', NULL, NULL),
+(32, 'FEES-17809446178928', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094461836824', 'completed', 'M-Pesa Payment', '2026-06-08 18:50:18', NULL, NULL),
+(33, 'FEES-17809446237899', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094462412634', 'completed', 'M-Pesa Payment', '2026-06-08 18:50:24', NULL, NULL),
+(34, 'FEES-17809446292701', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094463016033', 'completed', 'M-Pesa Payment', '2026-06-08 18:50:30', NULL, NULL),
+(35, 'FEES-17809446355158', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094463683352', 'completed', 'M-Pesa Payment', '2026-06-08 18:50:36', NULL, NULL),
+(36, 'FEES-17809446406320', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094464195921', 'completed', 'M-Pesa Payment', '2026-06-08 18:50:41', NULL, NULL),
+(37, 'FEES-17809446446669', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094464554721', 'completed', 'M-Pesa Payment', '2026-06-08 18:50:45', NULL, NULL),
+(38, 'FEES-17809446495937', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094465084155', 'completed', 'M-Pesa Payment', '2026-06-08 18:50:50', NULL, NULL),
+(39, 'FEES-17809446541478', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094465584497', 'completed', 'M-Pesa Payment', '2026-06-08 18:50:55', NULL, NULL),
+(40, 'FEES-17809446594442', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094466019815', 'completed', 'M-Pesa Payment', '2026-06-08 18:51:00', NULL, NULL),
+(41, 'FEES-17809446649476', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094466573917', 'completed', 'M-Pesa Payment', '2026-06-08 18:51:05', NULL, NULL),
+(42, 'FEES-17809446694877', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094467073758', 'completed', 'M-Pesa Payment', '2026-06-08 18:51:10', NULL, NULL),
+(43, 'FEES-17809446759964', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094467656539', 'completed', 'M-Pesa Payment', '2026-06-08 18:51:16', NULL, NULL),
+(44, 'FEES-17809446801749', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094468131160', 'completed', 'M-Pesa Payment', '2026-06-08 18:51:21', NULL, NULL),
+(45, 'FEES-17809446876312', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094468882453', 'completed', 'M-Pesa Payment', '2026-06-08 18:51:28', NULL, NULL),
+(46, 'FEES-17809446927777', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094469335192', 'completed', 'M-Pesa Payment', '2026-06-08 18:51:33', NULL, NULL),
+(47, 'FEES-17809446972408', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094469811821', 'completed', 'M-Pesa Payment', '2026-06-08 18:51:38', NULL, NULL),
+(48, 'FEES-17809447024727', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094470318377', 'completed', 'M-Pesa Payment', '2026-06-08 18:51:43', NULL, NULL),
+(49, 'FEES-17809447074626', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094470816423', 'completed', 'M-Pesa Payment', '2026-06-08 18:51:48', NULL, NULL),
+(50, 'FEES-17809447124239', 'BBM/2026/00006', 1000.00, 'mpesa', '254708374149', '2026-06-08', 'RCP_178094471375356', 'completed', 'M-Pesa Payment', '2026-06-08 18:51:53', NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -1832,6 +1954,33 @@ INSERT INTO `registered_courses` (`id`, `student_reg_no`, `unit_code`, `departme
 (18, 'BSN/2026/00007', 'BSN1106', 'Nursing', 'Regular', 'Day', 'Jan/Apr', '2026', 'Confirmed', '2026-04-09 09:32:05'),
 (23, 'BIT/2026/00005', 'BUCU007', 'Information Technology', 'Regular', 'Day', 'Jan/Apr', '2026', 'Provisional', '2026-04-11 06:37:26'),
 (24, 'BBM/2026/00006', 'BBM1102', 'Management', 'Regular', 'Day', 'Jan/Apr', '2026', 'Provisional', '2026-04-15 09:33:36');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `student_fees`
+--
+
+CREATE TABLE `student_fees` (
+  `id` int(11) NOT NULL,
+  `student_reg_no` varchar(50) NOT NULL,
+  `year` int(11) NOT NULL,
+  `semester` int(11) NOT NULL,
+  `total_fees` decimal(10,2) DEFAULT 0.00,
+  `amount_paid` decimal(10,2) DEFAULT 0.00,
+  `balance` decimal(10,2) DEFAULT 0.00,
+  `status` enum('pending','partial','paid','overdue') DEFAULT 'pending',
+  `last_payment_date` date DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `student_fees`
+--
+
+INSERT INTO `student_fees` (`id`, `student_reg_no`, `year`, `semester`, `total_fees`, `amount_paid`, `balance`, `status`, `last_payment_date`, `created_at`, `updated_at`) VALUES
+(1, 'BBM/2026/00006', 2026, 1, 50000.00, 50000.00, 0.00, 'paid', '2026-06-08', '2026-06-08 16:55:23', '2026-06-08 18:51:53');
 
 -- --------------------------------------------------------
 
@@ -2124,21 +2273,23 @@ CREATE TABLE `users` (
   `department` varchar(100) NOT NULL,
   `phone` varchar(20) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `survey_done` tinyint(1) DEFAULT 0
+  `survey_done` tinyint(1) DEFAULT 0,
+  `reset_token` varchar(255) DEFAULT NULL,
+  `reset_expires` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `full_name`, `reg_number`, `email`, `password`, `password_changed`, `role`, `department`, `phone`, `created_at`, `survey_done`) VALUES
-(1, 'System Admin', 'ADMIN/001', 'admin@mku.ac.ke', '$2y$10$P.VKg4sPX1yHxleIOEwf1OKlHbYUWXlERdv.GC4clNTvCJWjwS5uG', 0, 'admin', '', NULL, '2026-01-18 19:01:19', 1),
-(33, 'Chepchieng Noah', 'BIT/2026/00005', 'veramichael678@gmail.com', '$2y$10$HDIZVtQDe3GxqEoAoNRiIOiAH95HbECQgCB2JEPBNnnLaKbpCwjgq', 0, 'student', 'Information Technology', NULL, '2026-04-01 07:10:08', 1),
-(38, 'Noah chep', 'BBM/2026/00006', 'noahchep1@gmail.com', '$2y$10$9jNl85ibphfYln/ZXSNznOI9XkBbyDVXxwnRO6FeTouhtaPpwzX3e', 0, 'student', 'Management', NULL, '2026-04-09 07:23:08', 1),
-(39, 'Novrah', 'BSN/2026/00007', 'novrah4g@gmail.com', '$2y$10$M7DQOFtSArRE0HFeMtCiR.Tywu3efOm1Zg3t3dF8dfPsP53v02a0W', 0, 'student', 'Nursing', NULL, '2026-04-09 08:09:49', 1),
-(42, 'Arfican', 'LEC/2026/00001', 'africanpreetypoet@gmail.com', '$2y$10$.xlxFN3eRq2/gbMuabaFhuhuipG7GoxachgwUGu9Ch5UKVBnM.0dS', 1, 'lecturer', 'Information Technology', '0759768770', '2026-04-11 04:36:12', 0),
-(63, 'Dr. John Smith', 'LEC/2026/00002', 'john.smith@mku.ac.ke', '$2y$10$IOK.CB4RBdrTNCOA.LXLC.T39h2oZqqL9JQA2QfzTa.zbeTezqP4K', 0, 'lecturer', 'Management', '0759768770', '2026-04-11 10:14:30', 0),
-(64, 'Dr. Michael', 'LEC/2026/00003', 'dr_michael@gmail.com', '$2y$10$UFipm.AtaBtC8KlB9FYhpu7XtEXezVSM9yZ4PFGiN0U/EC1pdlgTe', 0, 'lecturer', 'Nursing', '+254791730556', '2026-04-15 08:55:05', 0);
+INSERT INTO `users` (`id`, `full_name`, `reg_number`, `email`, `password`, `password_changed`, `role`, `department`, `phone`, `created_at`, `survey_done`, `reset_token`, `reset_expires`) VALUES
+(1, 'System Admin', 'ADMIN/001', 'admin@mku.ac.ke', '$2y$10$y4l5kIMWsY8hqLN1xyVncuBy7ZNgCMkKdm8/jVGl.y3nIF9DxApTy', 1, 'admin', '', NULL, '2026-01-18 19:01:19', 1, '93ce60411ce53614781879d59612217eaa66b74acb90d07bfccf910dcfd00944', '2026-06-17 21:46:33'),
+(33, 'Chepchieng Noah', 'BIT/2026/00005', 'veramichael678@gmail.com', '$2y$10$HDIZVtQDe3GxqEoAoNRiIOiAH95HbECQgCB2JEPBNnnLaKbpCwjgq', 0, 'student', 'Information Technology', NULL, '2026-04-01 07:10:08', 1, NULL, NULL),
+(38, 'Noah chep', 'BBM/2026/00006', 'noahchep1@gmail.com', '$2y$10$NkBVYY0DOB6tOlFXPUVQAOFo8ErYeroO3xhyBDx5LNInwAw4/OH1S', 0, 'student', 'Management', NULL, '2026-04-09 07:23:08', 1, NULL, NULL),
+(39, 'Novrah', 'BSN/2026/00007', 'novrah4g@gmail.com', '$2y$10$M7DQOFtSArRE0HFeMtCiR.Tywu3efOm1Zg3t3dF8dfPsP53v02a0W', 0, 'student', 'Nursing', NULL, '2026-04-09 08:09:49', 1, NULL, NULL),
+(42, 'Arfican', 'LEC/2026/00001', 'africanpreetypoet@gmail.com', '$2y$10$.xlxFN3eRq2/gbMuabaFhuhuipG7GoxachgwUGu9Ch5UKVBnM.0dS', 1, 'lecturer', 'Information Technology', '0759768770', '2026-04-11 04:36:12', 0, NULL, NULL),
+(63, 'Dr. John Smith', 'LEC/2026/00002', 'john.smith@mku.ac.ke', '$2y$10$IOK.CB4RBdrTNCOA.LXLC.T39h2oZqqL9JQA2QfzTa.zbeTezqP4K', 0, 'lecturer', 'Management', '0759768770', '2026-04-11 10:14:30', 0, NULL, NULL),
+(64, 'Dr. Michael', 'LEC/2026/00003', 'dr_michael@gmail.com', '$2y$10$UFipm.AtaBtC8KlB9FYhpu7XtEXezVSM9yZ4PFGiN0U/EC1pdlgTe', 0, 'lecturer', 'Nursing', '+254791730556', '2026-04-15 08:55:05', 0, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -2257,12 +2408,35 @@ ALTER TABLE `course_materials`
   ADD PRIMARY KEY (`id`);
 
 --
+-- Indexes for table `fees_structure`
+--
+ALTER TABLE `fees_structure`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `unique_fee` (`year`,`semester`,`year_level`,`category`);
+
+--
+-- Indexes for table `payment_transactions`
+--
+ALTER TABLE `payment_transactions`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `transaction_id` (`transaction_id`),
+  ADD UNIQUE KEY `receipt_no` (`receipt_no`),
+  ADD KEY `idx_student_payments` (`student_reg_no`);
+
+--
 -- Indexes for table `registered_courses`
 --
 ALTER TABLE `registered_courses`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `uniq_student_unit` (`student_reg_no`,`unit_code`),
   ADD KEY `fk_registered_unit` (`unit_code`);
+
+--
+-- Indexes for table `student_fees`
+--
+ALTER TABLE `student_fees`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_student` (`student_reg_no`);
 
 --
 -- Indexes for table `survey_responses`
@@ -2340,7 +2514,7 @@ ALTER TABLE `assignment_submissions`
 -- AUTO_INCREMENT for table `chat_messages`
 --
 ALTER TABLE `chat_messages`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=278;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=280;
 
 --
 -- AUTO_INCREMENT for table `course_materials`
@@ -2349,10 +2523,28 @@ ALTER TABLE `course_materials`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
+-- AUTO_INCREMENT for table `fees_structure`
+--
+ALTER TABLE `fees_structure`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1644;
+
+--
+-- AUTO_INCREMENT for table `payment_transactions`
+--
+ALTER TABLE `payment_transactions`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=51;
+
+--
 -- AUTO_INCREMENT for table `registered_courses`
 --
 ALTER TABLE `registered_courses`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
+
+--
+-- AUTO_INCREMENT for table `student_fees`
+--
+ALTER TABLE `student_fees`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `survey_responses`
@@ -2389,10 +2581,22 @@ ALTER TABLE `vocabulary_requests`
 --
 
 --
+-- Constraints for table `payment_transactions`
+--
+ALTER TABLE `payment_transactions`
+  ADD CONSTRAINT `payment_transactions_ibfk_1` FOREIGN KEY (`student_reg_no`) REFERENCES `users` (`reg_number`);
+
+--
 -- Constraints for table `registered_courses`
 --
 ALTER TABLE `registered_courses`
   ADD CONSTRAINT `fk_registered_unit` FOREIGN KEY (`unit_code`) REFERENCES `timetable` (`unit_code`) ON UPDATE CASCADE;
+
+--
+-- Constraints for table `student_fees`
+--
+ALTER TABLE `student_fees`
+  ADD CONSTRAINT `student_fees_ibfk_1` FOREIGN KEY (`student_reg_no`) REFERENCES `users` (`reg_number`);
 
 --
 -- Constraints for table `survey_responses`

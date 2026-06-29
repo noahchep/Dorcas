@@ -276,6 +276,7 @@ $units_list = !empty($student_units) ? "'" . implode("','", $student_units) . "'
     <a href="home.php?page=assignments" class="<?php echo $page === 'assignments' ? 'active' : ''; ?>">📝 Assignments</a>
     <a href="home.php?page=my_submissions" class="<?php echo $page === 'my_submissions' ? 'active' : ''; ?>">📋 My Submissions</a>
     <a href="home.php?page=my_results" class="<?php echo $page === 'my_results' ? 'active' : ''; ?>">📊 My Results</a>
+      <a href="fee_management.php" class="fee-link">💰 Fee Management</a>
     <a href="personal_information.php">👤 Information Update</a>
     <a href="teaching_timetable.php">📅 Timetables</a>
     <a href="registration.php">📖 Course Registration</a>        

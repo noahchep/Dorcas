@@ -606,12 +606,16 @@ function getStudentYearLevel($conn, $student_reg) {
               WHERE rc.student_reg_no = ? 
               LIMIT 1";
     $stmt = $conn->prepare($query);
+    if (!$stmt) {
+        return getStudentYearLevelFromReg($student_reg);
+    }
     $stmt->bind_param("s", $student_reg);
     $stmt->execute();
     $result = $stmt->get_result();
     
-    if ($result->num_rows > 0) {
-        return $result->fetch_assoc()['year_level'];
+    if ($result && $result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        return $row['year_level'];
     }
     
     return getStudentYearLevelFromReg($student_reg);
@@ -809,7 +813,11 @@ function fuzzyDetectIntent($input) {
         'assignment_deadline' => ['deadline for', 'when is assignment due', 'submission date', 'due date', 'assignment deadline', 'cat deadline', 'submit by'],
         'academic_progress' => ['my performance', 'academic progress', 'how am i doing', 'my grades', 'my marks', 'progress report', 'academic standing', 'how is my performance', 'my results'],
         'academic_advice' => ['give me advice', 'study advice', 'how to improve', 'academic advice', 'tips to improve', 'what should i do', 'advice for', 'help me improve'],
-        'graduation' => ['when am i finishing', 'when will i finish', 'when do i graduate', 'when do i finish', 'graduation date', 'completion date', 'finishing school', 'complete school', 'when am i completing']
+        'graduation' => ['when am i finishing', 'when will i finish', 'when do i graduate', 'when do i finish', 'graduation date', 'completion date', 'finishing school', 'complete school', 'when am i completing'],
+        'fee_balance' => ['fee balance', 'my balance', 'outstanding balance', 'how much do i owe', 'fees remaining', 'balance due', 'how much is my balance', 'what is my fee balance', 'check balance', 'fees outstanding'],
+        'fee_structure' => ['fee structure', 'school fees', 'tuition fees', 'fee breakdown', 'what fees', 'total fees', 'fee details', 'how much are fees', 'fee list', 'show fees', 'fees for this semester'],
+        'fee_due_date' => ['fee due date', 'when is fee due', 'deadline for fees', 'fee payment deadline', 'pay fees by', 'when to pay fees', 'fee due', 'payment deadline', 'when should i pay fees', 'last day to pay fees'],
+        'payment_methods' => ['payment methods', 'how to pay', 'pay fees', 'payment options', 'pay school fees', 'ways to pay', 'payment channels', 'where to pay fees', 'how can i pay', 'payment procedure']
     ];
     
     $input_lower = strtolower(trim($input));
@@ -852,6 +860,275 @@ function fuzzyDetectIntent($input) {
     return $best_intent;
 }
 
+/* ============================================================
+    FEE MANAGEMENT FUNCTIONS - FIXED
+============================================================ */
+
+// Get fee structure for a student based on department and year level
+function getStudentFeeStructure($conn, $department, $year_level, $semester) {
+    $query = "SELECT fs.* 
+              FROM fee_structure fs 
+              WHERE fs.department = ? 
+              AND fs.year_level = ? 
+              AND fs.semester = ? 
+              ORDER BY fs.id ASC";
+    $stmt = $conn->prepare($query);
+    if (!$stmt) {
+        return [];
+    }
+    // FIXED: Use "sss" for all string parameters
+    $semester_str = (string)$semester;
+    $stmt->bind_param("sss", $department, $year_level, $semester_str);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    $fees = [];
+    while ($row = $result->fetch_assoc()) {
+        $fees[] = $row;
+    }
+    $stmt->close();
+    return $fees;
+}
+
+// Get student's fee payments and calculate balances
+function getStudentFeeBalance($conn, $student_reg) {
+    // Get all fee structures for this student
+    $department = getStudentDepartment();
+    $year_level = getStudentYearLevel($conn, $student_reg);
+    $semester = getCurrentSemester();
+    
+    if (!$department) {
+        return ['error' => 'Department not found'];
+    }
+    
+    $fee_structure = getStudentFeeStructure($conn, $department, $year_level, $semester);
+    
+    if (empty($fee_structure)) {
+        return ['error' => 'No fee structure found for your department and year level'];
+    }
+    
+    // Get all payments made by this student
+    $payment_query = "SELECT fee_type, SUM(amount) as paid_amount 
+                      FROM fee_payments 
+                      WHERE student_reg = ? 
+                      AND status = 'completed'
+                      GROUP BY fee_type";
+    $stmt = $conn->prepare($payment_query);
+    $stmt->bind_param("s", $student_reg);
+    $stmt->execute();
+    $payment_result = $stmt->get_result();
+    
+    $paid_amounts = [];
+    while ($row = $payment_result->fetch_assoc()) {
+        $paid_amounts[$row['fee_type']] = floatval($row['paid_amount']);
+    }
+    
+    // Calculate total fees and paid amounts
+    $fee_breakdown = [];
+    $total_fees = 0;
+    $total_paid = 0;
+    
+    foreach ($fee_structure as $fee) {
+        $fee_type = $fee['fee_type'];
+        $amount = floatval($fee['amount']);
+        $paid = $paid_amounts[$fee_type] ?? 0;
+        $remaining = $amount - $paid;
+        
+        $fee_breakdown[] = [
+            'fee_type' => $fee_type,
+            'amount' => $amount,
+            'paid' => $paid,
+            'remaining' => $remaining,
+            'status' => ($remaining <= 0) ? 'Paid' : 'Pending',
+            'due_date' => $fee['due_date']
+        ];
+        
+        $total_fees += $amount;
+        $total_paid += $paid;
+    }
+    
+    $outstanding_balance = $total_fees - $total_paid;
+    $payment_percentage = ($total_fees > 0) ? ($total_paid / $total_fees) * 100 : 0;
+    
+    return [
+        'fee_breakdown' => $fee_breakdown,
+        'total_fees' => $total_fees,
+        'total_paid' => $total_paid,
+        'outstanding_balance' => $outstanding_balance,
+        'payment_percentage' => $payment_percentage
+    ];
+}
+
+// Get payment methods
+function getPaymentMethods() {
+    return [
+        ['method' => 'Credit Card', 'icon' => '💳', 'description' => 'Pay using Visa, Mastercard, or American Express'],
+        ['method' => 'Debit Card', 'icon' => '🏦', 'description' => 'Pay using your bank debit card'],
+        ['method' => 'Bank Transfer', 'icon' => '🏛️', 'description' => 'Direct bank transfer to university account'],
+        ['method' => 'Mobile Money', 'icon' => '📱', 'description' => 'M-Pesa, Airtel Money, T-kash, etc.'],
+        ['method' => 'PayPal', 'icon' => '🅿️', 'description' => 'International payment via PayPal']
+    ];
+}
+
+// Generate fee response based on query type
+function generateFeeResponse($conn, $student_reg, $intent) {
+    $department = getStudentDepartment();
+    $year_level = getStudentYearLevel($conn, $student_reg);
+    $semester = getCurrentSemester();
+    $semester_name = ($semester == 1) ? '1st Semester' : '2nd Semester';
+    
+    // Get fee data
+    $fee_data = getStudentFeeBalance($conn, $student_reg);
+    
+    if (isset($fee_data['error'])) {
+        return "<b>⚠️ " . $fee_data['error'] . "</b><br><br>
+                💡 <i>Please contact the finance office or the academic office for assistance.</i>";
+    }
+    
+    $response = "";
+    
+    switch ($intent) {
+        case 'fee_balance':
+            $response .= "<b>💰 Your Fee Balance Summary</b><br><br>";
+            $response .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br><br>";
+            $response .= "🎓 <b>Student:</b> " . ($_SESSION['user_name'] ?? $student_reg) . "<br>";
+            $response .= "📚 <b>Department:</b> {$department}<br>";
+            $response .= "📅 <b>Semester:</b> {$semester_name}<br><br>";
+            
+            $response .= "<b>📊 Fee Summary:</b><br>";
+            $response .= "   💰 <b>Total Fees:</b> $" . number_format($fee_data['total_fees'], 2) . "<br>";
+            $response .= "   ✅ <b>Paid Amount:</b> $" . number_format($fee_data['total_paid'], 2) . "<br>";
+            
+            if ($fee_data['outstanding_balance'] > 0) {
+                $response .= "   ⚠️ <b style='color: #dc3545;'>Outstanding Balance:</b> $" . number_format($fee_data['outstanding_balance'], 2) . "<br>";
+            } else {
+                $response .= "   🎉 <b style='color: #28a745;'>All fees cleared!</b> $" . number_format($fee_data['outstanding_balance'], 2) . "<br>";
+            }
+            $response .= "   📊 <b>Payment Progress:</b> " . number_format($fee_data['payment_percentage'], 1) . "% complete<br><br>";
+            
+            // Payment progress bar
+            $bar_length = 20;
+            $filled = round(($fee_data['payment_percentage'] / 100) * $bar_length);
+            $empty = $bar_length - $filled;
+            $response .= "   █" . str_repeat("█", $filled) . str_repeat("░", $empty) . "█<br><br>";
+            
+            if ($fee_data['outstanding_balance'] > 0) {
+                $response .= "📌 <b>Outstanding Fees Breakdown:</b><br>";
+                foreach ($fee_data['fee_breakdown'] as $fee) {
+                    if ($fee['remaining'] > 0) {
+                        $response .= "   • <b>" . ucfirst(str_replace('_', ' ', $fee['fee_type'])) . "</b>: $" . number_format($fee['remaining'], 2) . " (Due: " . date('d M Y', strtotime($fee['due_date'])) . ")<br>";
+                    }
+                }
+                $response .= "<br>💡 <i>Say 'How to pay fees?' to see available payment methods!</i><br>";
+            }
+            break;
+            
+        case 'fee_structure':
+            $response .= "<b>📋 Your Fee Structure - {$semester_name}</b><br><br>";
+            $response .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br><br>";
+            $response .= "🎓 <b>Department:</b> {$department}<br>";
+            $response .= "📅 <b>Semester:</b> {$semester_name}<br>";
+            $response .= "📊 <b>Year Level:</b> {$year_level}<br><br>";
+            
+            $response .= "<b>📌 Detailed Fee Breakdown:</b><br><br>";
+            
+            if (!empty($fee_data['fee_breakdown'])) {
+                $response .= "<table style='width: 100%; border-collapse: collapse; font-size: 0.9rem;'>";
+                $response .= "<tr style='background: #f1f5f9;'>";
+                $response .= "<th style='padding: 8px; text-align: left; border: 1px solid #e2e8f0;'>Fee Type</th>";
+                $response .= "<th style='padding: 8px; text-align: right; border: 1px solid #e2e8f0;'>Amount</th>";
+                $response .= "<th style='padding: 8px; text-align: right; border: 1px solid #e2e8f0;'>Paid</th>";
+                $response .= "<th style='padding: 8px; text-align: right; border: 1px solid #e2e8f0;'>Remaining</th>";
+                $response .= "<th style='padding: 8px; text-align: left; border: 1px solid #e2e8f0;'>Status</th>";
+                $response .= "</tr>";
+                
+                foreach ($fee_data['fee_breakdown'] as $fee) {
+                    $status_color = ($fee['remaining'] <= 0) ? '#28a745' : '#dc3545';
+                    $status_text = ($fee['remaining'] <= 0) ? '✅ Paid' : '⏳ Pending';
+                    $response .= "<tr>";
+                    $response .= "<td style='padding: 8px; border: 1px solid #e2e8f0;'><b>" . ucfirst(str_replace('_', ' ', $fee['fee_type'])) . "</b></td>";
+                    $response .= "<td style='padding: 8px; text-align: right; border: 1px solid #e2e8f0;'>$" . number_format($fee['amount'], 2) . "</td>";
+                    $response .= "<td style='padding: 8px; text-align: right; border: 1px solid #e2e8f0;'>$" . number_format($fee['paid'], 2) . "</td>";
+                    $response .= "<td style='padding: 8px; text-align: right; border: 1px solid #e2e8f0; color: {$status_color};'><b>$" . number_format($fee['remaining'], 2) . "</b></td>";
+                    $response .= "<td style='padding: 8px; border: 1px solid #e2e8f0; color: {$status_color};'>{$status_text}</td>";
+                    $response .= "</tr>";
+                }
+                
+                $response .= "<tr style='background: #f1f5f9; font-weight: bold;'>";
+                $response .= "<td style='padding: 8px; border: 1px solid #e2e8f0;'>TOTAL</td>";
+                $response .= "<td style='padding: 8px; text-align: right; border: 1px solid #e2e8f0;'>$" . number_format($fee_data['total_fees'], 2) . "</td>";
+                $response .= "<td style='padding: 8px; text-align: right; border: 1px solid #e2e8f0;'>$" . number_format($fee_data['total_paid'], 2) . "</td>";
+                $response .= "<td style='padding: 8px; text-align: right; border: 1px solid #e2e8f0; color: " . ($fee_data['outstanding_balance'] > 0 ? '#dc3545' : '#28a745') . ";'>$" . number_format($fee_data['outstanding_balance'], 2) . "</td>";
+                $response .= "<td style='padding: 8px; border: 1px solid #e2e8f0;'></td>";
+                $response .= "</tr>";
+                $response .= "</table><br>";
+            }
+            
+            $response .= "💡 <i>Say 'My fee balance' to see your outstanding balance summary!</i><br>";
+            break;
+            
+        case 'fee_due_date':
+            $response .= "<b>📅 Fee Payment Deadlines</b><br><br>";
+            $response .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br><br>";
+            
+            $upcoming_fees = [];
+            foreach ($fee_data['fee_breakdown'] as $fee) {
+                if ($fee['remaining'] > 0 && strtotime($fee['due_date']) >= time()) {
+                    $upcoming_fees[] = $fee;
+                }
+            }
+            
+            if (!empty($upcoming_fees)) {
+                $response .= "<b>⏰ Upcoming Fee Deadlines:</b><br><br>";
+                foreach ($upcoming_fees as $fee) {
+                    $days_left = ceil((strtotime($fee['due_date']) - time()) / (60 * 60 * 24));
+                    $urgency = ($days_left <= 7) ? '🔴 URGENT' : (($days_left <= 14) ? '🟡 Soon' : '🟢 You have time');
+                    $response .= "   • <b>" . ucfirst(str_replace('_', ' ', $fee['fee_type'])) . "</b><br>";
+                    $response .= "     📅 Due: " . date('F j, Y', strtotime($fee['due_date'])) . "<br>";
+                    $response .= "     ⏰ Days Left: {$days_left} days — {$urgency}<br>";
+                    $response .= "     💰 Amount Due: $" . number_format($fee['remaining'], 2) . "<br><br>";
+                }
+                
+                $response .= "💡 <i>Pay before the deadline to avoid late penalties!</i><br>";
+            } else {
+                $response .= "🎉 <b>Great news!</b> You have no upcoming fee deadlines. All your fees are cleared!<br><br>";
+                $response .= "💡 <i>Keep up the good work! 💪</i><br>";
+            }
+            break;
+            
+        case 'payment_methods':
+            $response .= "<b>💳 Available Payment Methods</b><br><br>";
+            $response .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br><br>";
+            $response .= "Here are the ways you can pay your school fees:<br><br>";
+            
+            $methods = getPaymentMethods();
+            foreach ($methods as $method) {
+                $response .= "{$method['icon']} <b>{$method['method']}</b><br>";
+                $response .= "   📝 {$method['description']}<br><br>";
+            }
+            
+            $response .= "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br>";
+            $response .= "📌 <b>How to Pay:</b><br>";
+            $response .= "1. Log in to the student portal<br>";
+            $response .= "2. Go to 'Fee Management'<br>";
+            $response .= "3. Select the fee type you want to pay<br>";
+            $response .= "4. Choose your preferred payment method<br>";
+            $response .= "5. Enter the amount and complete the payment<br><br>";
+            $response .= "💡 <i>Say 'My fee balance' to see how much you need to pay!</i><br>";
+            break;
+            
+        default:
+            $response = "💰 I can help you with school fees! Try asking:<br><br>";
+            $response .= "• 'My fee balance' - Check your outstanding balance<br>";
+            $response .= "• 'Fee structure' - View detailed fee breakdown<br>";
+            $response .= "• 'Fee due dates' - Check payment deadlines<br>";
+            $response .= "• 'Payment methods' - See how to pay your fees<br>";
+            break;
+    }
+    
+    return $response;
+}
+
 /* ===============================
     6. PRIORITY 1: KNOWLEDGE BASE CHECK
 ================================ */
@@ -876,6 +1153,83 @@ if ($kb_result->num_rows > 0) {
     echo "<b>Verified Support:</b> " . $reply;
     exit; 
 }
+
+/* ===============================
+    FEE INTENT DETECTION (BEFORE ADMISSION CHECKS)
+================================ */
+
+// Check for fee-related queries
+$fee_keywords = ['fee', 'balance', 'outstanding', 'owe', 'tuition', 'school fees', 'payment', 'pay', 'due', 'deadline', 'method', 'structure', 'breakdown'];
+
+$is_fee_query = false;
+foreach ($fee_keywords as $keyword) {
+    if (strpos($user_input, $keyword) !== false) {
+        $is_fee_query = true;
+        break;
+    }
+}
+
+// Also check for common fee question patterns
+$fee_patterns = [
+    '/how much (?:do i owe|is my balance|are my fees)/i',
+    '/my fee balance/i',
+    '/outstanding balance/i',
+    '/fee structure/i',
+    '/school fees/i',
+    '/tuition fees/i',
+    '/when (?:is|are) (?:my|the) fees due/i',
+    '/fee due date/i',
+    '/payment deadline/i',
+    '/how to pay fees/i',
+    '/payment methods/i',
+    '/pay my fees/i',
+    '/what is my fee balance/i',
+    '/fees remaining/i',
+    '/total fees/i'
+];
+
+foreach ($fee_patterns as $pattern) {
+    if (preg_match($pattern, $user_input)) {
+        $is_fee_query = true;
+        break;
+    }
+}
+
+if ($is_fee_query) {
+    $student_reg = $_SESSION['reg_number'] ?? null;
+    
+    if (!$student_reg) {
+        echo "🔐 I'd love to help you with your fee information, but you need to log in first.<br><br>";
+        echo "💡 <i>Once logged in, I can tell you about your fee balance, structure, and payment options!</i>";
+        
+        $stmt_bot = $conn->prepare("INSERT INTO chat_messages (conversation_id, sender_type, message) VALUES (?, 'bot', ?)");
+        $stmt_bot->bind_param("ss", $sess_id, "Fee query - login required");
+        $stmt_bot->execute();
+        exit;
+    }
+    
+    // Determine specific fee intent
+    $fee_intent = 'fee_balance';
+    
+    if (preg_match('/(structure|breakdown|total fees|fee list|what fees|how much are fees)/i', $user_input)) {
+        $fee_intent = 'fee_structure';
+    } elseif (preg_match('/(due date|deadline|when.*due|payment deadline|when to pay)/i', $user_input)) {
+        $fee_intent = 'fee_due_date';
+    } elseif (preg_match('/(methods?|how to pay|pay fees|payment options|ways to pay|payment channels)/i', $user_input)) {
+        $fee_intent = 'payment_methods';
+    } elseif (preg_match('/(balance|outstanding|owe|how much|remaining|fee balance)/i', $user_input)) {
+        $fee_intent = 'fee_balance';
+    }
+    
+    $response = generateFeeResponse($conn, $student_reg, $fee_intent);
+    echo $response;
+    
+    $stmt_bot = $conn->prepare("INSERT INTO chat_messages (conversation_id, sender_type, message) VALUES (?, 'bot', ?)");
+    $stmt_bot->bind_param("ss", $sess_id, "Fee query response: " . $fee_intent);
+    $stmt_bot->execute();
+    exit;
+}
+
 /* ===============================
     6.5. ADMISSION & JOIN DATE CHECKS
 ================================ */
@@ -1050,10 +1404,6 @@ if (preg_match('/(how many months|how long have i been|how long have i studied|t
 
 /* ===============================
     6.6. SEMESTER & GRADUATION CHECKS
-================================ */
-
-/* ===============================
-    6.6. SEMESTER & GRADUATION CHECKS (continued)
 ================================ */
 
 // Check for "how many semesters left"
@@ -1313,6 +1663,7 @@ if (preg_match('/(when am i finishing|when will i finish|when do i graduate|when
     echo "💡 <i>Say 'When did I join?' to see your admission details!</i>";
     exit;
 }
+
 /* ===============================
     6.6. CHECK FOR "MY LECTURERS" QUERY
 ================================ */
@@ -1622,6 +1973,10 @@ function detectIntent($input) {
             case 'academic_progress': return ['intent' => 'academic_progress'];
             case 'academic_advice': return ['intent' => 'academic_advice'];
             case 'graduation': return ['intent' => 'graduation'];
+            case 'fee_balance': return ['intent' => 'fee_balance'];
+            case 'fee_structure': return ['intent' => 'fee_structure'];
+            case 'fee_due_date': return ['intent' => 'fee_due_date'];
+            case 'payment_methods': return ['intent' => 'payment_methods'];
             case 'unit_registration_count':
                 if (preg_match('/([A-Z]{3,4}[0-9]{4})/i', $input, $matches)) {
                     return ['intent' => 'unit_registration_count', 'unit_code' => strtoupper($matches[1])];
@@ -2126,6 +2481,22 @@ switch ($intent) {
         echo "<br>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br>";
         echo "💡 <i>Remember: Every expert was once a beginner. Keep going, and you'll get there! 🌱</i><br>";
         echo "💡 <i>Say 'My academic progress' to see your detailed performance report!</i>";
+        break;
+    
+    case 'fee_balance':
+    case 'fee_structure':
+    case 'fee_due_date':
+    case 'payment_methods':
+        $student_reg = $_SESSION['reg_number'] ?? null;
+        
+        if (!$student_reg) {
+            echo "🔐 I'd love to help you with your fee information, but you need to log in first.<br><br>";
+            echo "💡 <i>Once logged in, I can tell you about your fee balance, structure, and payment options!</i>";
+            break;
+        }
+        
+        $response = generateFeeResponse($conn, $student_reg, $intent);
+        echo $response;
         break;
     
     case 'what_to_register':
@@ -2720,14 +3091,19 @@ switch ($intent) {
               ✅ <b>Academic Progress</b> - View your performance and grades<br>
               ✅ <b>Academic Advice</b> - Get personalized study recommendations<br>
               ✅ <b>When am I finishing?</b> - Check your graduation timeline and remaining semesters<br><br>
+              💰 <b>NEW! FEE MANAGEMENT FEATURES:</b><br>
+              ✅ <b>My Fee Balance</b> - Check your outstanding balance (e.g., 'My fee balance')<br>
+              ✅ <b>Fee Structure</b> - View detailed fee breakdown (e.g., 'Fee structure')<br>
+              ✅ <b>Fee Due Dates</b> - Check payment deadlines (e.g., 'When are fees due?')<br>
+              ✅ <b>Payment Methods</b> - See available payment options (e.g., 'Payment methods')<br><br>
               🎓 <b>Try asking:</b><br>
               • 'List my lecturers' - See everyone teaching in your department!<br>
               • 'Show my timetable' - See your complete class schedule!<br>
               • 'What to register' - See your required units for this semester!<br>
               • 'When am I finishing?' - Check when you'll graduate!<br>
-              • 'Do I have any pending assignments?' - Check upcoming deadlines!<br>
-              • 'My academic progress' - View your performance across all units!<br>
-              • 'Give me academic advice' - Get personalized study tips!<br><br>
+              • 'My fee balance' - Check how much you owe!<br>
+              • 'Fee structure' - View all your fees broken down!<br>
+              • 'Payment methods' - See how to pay your fees!<br><br>
               What would you like to know today? 😊";
         break;
     

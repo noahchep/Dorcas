@@ -19,7 +19,7 @@ $user_id = $_SESSION['user_id'];
 $student_reg = $_SESSION['reg_number'];
 $student_dept = $_SESSION['department'];
 
-$sql = "SELECT full_name, reg_number, department FROM users WHERE id = ? AND role = 'student'";
+$sql = "SELECT full_name, reg_number, department, created_at FROM users WHERE id = ? AND role = 'student'";
 $stmt = mysqli_prepare($conn, $sql);
 mysqli_stmt_bind_param($stmt, "i", $user_id);
 mysqli_stmt_execute($stmt);
@@ -32,6 +32,22 @@ if (!$result || mysqli_num_rows($result) !== 1) {
 }
 
 $student = mysqli_fetch_assoc($result);
+
+// Determine student year level
+function getStudentYearLevel($created_at) {
+    $created_year = date('Y', strtotime($created_at));
+    $current_year = date('Y');
+    $year_diff = $current_year - $created_year;
+    
+    if ($year_diff == 0) return 'FirstYear';
+    if ($year_diff == 1) return 'SecondYear';
+    if ($year_diff == 2) return 'ThirdYear';
+    return 'FourthYear';
+}
+
+$student_year_level = getStudentYearLevel($student['created_at']);
+$current_year = date('Y');
+$current_semester = (date('n') <= 6) ? 1 : 2;
 
 // Handle Payment Processing
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -55,30 +71,69 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Get fee summary
-$fee_summary_query = "SELECT 
-    COALESCE(SUM(CASE WHEN fee_type IN ('tuition_fee', 'library_fee', 'lab_fee', 'sports_fee', 'examination_fee') THEN amount ELSE 0 END), 0) as total_fees,
-    COALESCE(SUM(CASE WHEN payment_date IS NOT NULL AND status = 'completed' THEN amount ELSE 0 END), 0) as paid_amount
-    FROM fee_payments WHERE student_reg = '$student_reg'";
-$fee_summary_result = mysqli_query($conn, $fee_summary_query);
-$fee_summary = mysqli_fetch_assoc($fee_summary_result);
-$total_fees = $fee_summary['total_fees'] ?? 0;
-$paid_amount = $fee_summary['paid_amount'] ?? 0;
+// Get fee structure from fee_structure table based on student's department and year level
+$fee_structure_query = "SELECT * FROM fee_structure 
+                        WHERE department = '$student_dept' 
+                        AND semester = '$current_semester'
+                        AND year_level = '$student_year_level'
+                        ORDER BY id ASC";
+$fee_structure_result = mysqli_query($conn, $fee_structure_query);
+
+// Get all payments made by this student
+$payments_query = "SELECT fee_type, SUM(amount) as paid_amount 
+                   FROM fee_payments 
+                   WHERE student_reg = '$student_reg' 
+                   AND status = 'completed'
+                   GROUP BY fee_type";
+$payments_result = mysqli_query($conn, $payments_query);
+
+// Create an array of paid amounts by fee type
+$paid_amounts = [];
+while($p = mysqli_fetch_assoc($payments_result)) {
+    $paid_amounts[$p['fee_type']] = floatval($p['paid_amount']);
+}
+
+// Calculate totals and build fee breakdown
+$fee_breakdown = [];
+$total_fees = 0;
+$paid_amount = 0;
+
+while($fee = mysqli_fetch_assoc($fee_structure_result)) {
+    $fee_type = $fee['fee_type'];
+    $fee_amount = floatval($fee['amount']);
+    $paid_this_fee = $paid_amounts[$fee_type] ?? 0;
+    $remaining = $fee_amount - $paid_this_fee;
+    
+    $fee_breakdown[] = [
+        'fee_type' => $fee_type,
+        'amount' => $fee_amount,
+        'paid' => $paid_this_fee,
+        'remaining' => $remaining,
+        'status' => ($remaining <= 0) ? 'completed' : 'pending',
+        'due_date' => $fee['due_date']
+    ];
+    
+    $total_fees += $fee_amount;
+    $paid_amount += $paid_this_fee;
+}
+
 $outstanding_balance = $total_fees - $paid_amount;
 $payment_percentage = ($total_fees > 0) ? ($paid_amount / $total_fees) * 100 : 0;
 
-// Get fee structure (breakdown)
-$fee_structure_query = "SELECT * FROM fee_payments WHERE student_reg = '$student_reg' ORDER BY due_date ASC";
-$fee_structure_result = mysqli_query($conn, $fee_structure_query);
+// Get next payment due
+$next_payment = null;
+foreach($fee_breakdown as $fee) {
+    if ($fee['status'] == 'pending') {
+        $next_payment = $fee;
+        break;
+    }
+}
 
 // Get payment history
-$payment_history_query = "SELECT * FROM fee_payments WHERE student_reg = '$student_reg' ORDER BY payment_date DESC LIMIT 10";
+$payment_history_query = "SELECT * FROM fee_payments 
+                          WHERE student_reg = '$student_reg' 
+                          ORDER BY payment_date DESC LIMIT 10";
 $payment_history_result = mysqli_query($conn, $payment_history_query);
-
-// Get next payment due
-$next_payment_query = "SELECT fee_type, amount, due_date FROM fee_payments WHERE student_reg = '$student_reg' AND status = 'pending' ORDER BY due_date ASC LIMIT 1";
-$next_payment_result = mysqli_query($conn, $next_payment_query);
-$next_payment = mysqli_fetch_assoc($next_payment_result);
 
 $name_parts = explode(" ", $student['full_name']);
 $fname = $name_parts[0] ?? 'Student';
@@ -128,7 +183,6 @@ $fname = $name_parts[0] ?? 'Student';
         
         .student-strip { background: var(--accent); padding: 15px 25px; border-radius: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; color: var(--primary-dark); font-weight: 700; flex-wrap: wrap; gap: 10px; }
 
-        /* Fee Module Styles */
         .fee-module { background: white; padding: 2rem; margin-bottom: 2rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         .fee-module h2 { color: var(--fee-primary); margin-top: 0; display: flex; align-items: center; gap: 10px; }
         .fee-module h2 .icon { font-size: 2rem; }
@@ -144,13 +198,6 @@ $fname = $name_parts[0] ?? 'Student';
         .fee-card.paid { border-left-color: var(--success); }
         .fee-card.outstanding { border-left-color: var(--danger); }
         .fee-card.warning { border-left-color: #f59e0b; }
-        
-        .fee-card .progress-ring { width: 60px; height: 60px; border-radius: 50%; background: conic-gradient(var(--success) <?php echo $payment_percentage; ?>%, #e9ecef <?php echo $payment_percentage; ?>%); display: flex; align-items: center; justify-content: center; margin: 10px auto; }
-        .fee-card .progress-ring .inner { width: 45px; height: 45px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.9rem; color: var(--text-main); }
-
-        .fee-stats { display: flex; gap: 15px; flex-wrap: wrap; margin: 15px 0; padding: 15px; background: #f1f5f9; border-radius: 8px; }
-        .fee-stat { padding: 8px 16px; border-radius: 8px; font-size: 0.9rem; }
-        .fee-stat strong { color: var(--fee-primary); }
 
         .progress-bar-fee { background: #e9ecef; border-radius: 10px; height: 30px; margin: 1rem 0; overflow: hidden; }
         .progress-fee { background: linear-gradient(90deg, var(--success), #34d399); height: 100%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; border-radius: 10px; transition: width 0.8s ease; font-size: 0.85rem; }
@@ -174,12 +221,14 @@ $fname = $name_parts[0] ?? 'Student';
         .fee-table th { background: #f8f9fa; padding: 12px; text-align: left; border-bottom: 2px solid #dee2e6; font-weight: 700; color: var(--text-light); text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.5px; }
         .fee-table td { padding: 12px; border-bottom: 1px solid #dee2e6; }
         .fee-table tr:hover { background: #f8fafc; }
+        .fee-table .paid-row { background: #f0fdf4; }
         
         .status-badge { padding: 4px 14px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; display: inline-block; }
         .status-badge.paid { background: #d1fae5; color: #065f46; }
-        .status-badge.pending { background: #fed7aa; color: #92400e; }
         .status-badge.completed { background: #d1fae5; color: #065f46; }
+        .status-badge.pending { background: #fed7aa; color: #92400e; }
         .status-badge.overdue { background: #fee2e2; color: #991b1b; }
+        .status-badge.partial { background: #fef3c7; color: #92400e; }
         
         .receipt-btn { color: var(--fee-primary); text-decoration: none; padding: 5px 14px; border: 1px solid var(--fee-primary); border-radius: 4px; transition: all 0.3s; font-size: 0.8rem; display: inline-block; }
         .receipt-btn:hover { background: var(--fee-primary); color: white; }
@@ -193,17 +242,17 @@ $fname = $name_parts[0] ?? 'Student';
         .btn { padding: 12px 30px; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: 0.3s; display: inline-block; text-decoration: none; }
         .btn-fee { background: var(--fee-gradient); color: white; }
         .btn-fee:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(139, 92, 246, 0.3); }
-        .btn-fee-secondary { background: var(--primary); color: white; }
-        .btn-fee-secondary:hover { background: var(--primary-dark); transform: translateY(-2px); }
         .btn-success { background: var(--success); color: white; }
         .btn-success:hover { background: #059669; transform: translateY(-2px); }
         .btn-danger { background: var(--danger); color: white; }
         .btn-danger:hover { background: #dc2626; transform: translateY(-2px); }
         .btn-block { width: 100%; }
-        .btn-sm { padding: 8px 16px; font-size: 0.85rem; }
 
         .no-data { text-align: center; padding: 60px 20px; color: #666; background: #f9fafb; border-radius: 8px; }
         .no-data .big-icon { font-size: 4rem; display: block; margin-bottom: 15px; }
+        
+        .fee-info-box { background: #f0fdf4; padding: 15px; border-radius: 8px; border: 1px solid #bbf7d0; margin-bottom: 20px; }
+        .fee-info-box p { margin: 5px 0; }
 
         footer { text-align: center; padding: 40px; color: var(--text-light); font-size: 0.85rem; border-top: 1px solid var(--border); margin-top: 40px; }
 
@@ -234,6 +283,7 @@ $fname = $name_parts[0] ?? 'Student';
     <div class="student-strip">
         <span>Welcome back, <?php echo htmlspecialchars($fname); ?></span>
         <span><?php echo htmlspecialchars($student['reg_number']); ?> | <?php echo htmlspecialchars($student_dept); ?> Department</span>
+        <span><?php echo $student_year_level; ?> | Semester <?php echo $current_semester; ?></span>
     </div>
 
     <!-- Alert Messages -->
@@ -254,7 +304,7 @@ $fname = $name_parts[0] ?? 'Student';
                 <div class="card-icon">📊</div>
                 <h3>Total Fees</h3>
                 <div class="amount">$<?php echo number_format($total_fees, 2); ?></div>
-                <div class="sub-text">Academic Year 2025</div>
+                <div class="sub-text">Academic Year <?php echo $current_year; ?></div>
             </div>
             
             <div class="fee-card paid">
@@ -270,7 +320,7 @@ $fname = $name_parts[0] ?? 'Student';
                 <div class="amount" style="color: <?php echo $outstanding_balance > 0 ? 'var(--danger)' : 'var(--success)'; ?>;">
                     $<?php echo number_format($outstanding_balance, 2); ?>
                 </div>
-                <div class="sub-text"><?php echo $outstanding_balance > 0 ? 'Due: 30 Jun 2026' : 'All fees cleared! 🎉'; ?></div>
+                <div class="sub-text"><?php echo $outstanding_balance > 0 ? 'Due: ' . ($next_payment ? date('d M Y', strtotime($next_payment['due_date'])) : 'Soon') : 'All fees cleared! 🎉'; ?></div>
             </div>
             
             <div class="fee-card warning">
@@ -278,14 +328,14 @@ $fname = $name_parts[0] ?? 'Student';
                 <h3>Next Payment</h3>
                 <div class="amount">
                     <?php if ($next_payment): ?>
-                        $<?php echo number_format($next_payment['amount'], 2); ?>
+                        $<?php echo number_format($next_payment['remaining'], 2); ?>
                     <?php else: ?>
                         $0.00
                     <?php endif; ?>
                 </div>
                 <div class="sub-text">
                     <?php if ($next_payment): ?>
-                        Due: <?php echo date('d M Y', strtotime($next_payment['due_date'])); ?>
+                        <?php echo ucfirst(str_replace('_', ' ', $next_payment['fee_type'])); ?>
                     <?php else: ?>
                         No pending payments
                     <?php endif; ?>
@@ -318,35 +368,62 @@ $fname = $name_parts[0] ?? 'Student';
 
         <!-- Fee Breakdown Table -->
         <h3 style="margin-top: 30px;">📋 Fee Breakdown</h3>
-        <?php if (mysqli_num_rows($fee_structure_result) > 0): ?>
+        
+        <?php if (count($fee_breakdown) > 0): ?>
             <table class="fee-table">
                 <thead>
                     <tr>
                         <th>Fee Type</th>
-                        <th>Amount</th>
+                        <th>Total Amount</th>
+                        <th>Paid</th>
+                        <th>Remaining</th>
                         <th>Due Date</th>
                         <th>Status</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <?php while($fee = mysqli_fetch_assoc($fee_structure_result)): ?>
-                        <tr>
+                    <?php foreach($fee_breakdown as $fee): ?>
+                        <tr class="<?php echo $fee['status'] == 'completed' ? 'paid-row' : ''; ?>">
                             <td><strong><?php echo ucfirst(str_replace('_', ' ', $fee['fee_type'])); ?></strong></td>
                             <td>$<?php echo number_format($fee['amount'], 2); ?></td>
+                            <td>$<?php echo number_format($fee['paid'], 2); ?></td>
+                            <td>
+                                <?php if ($fee['remaining'] > 0): ?>
+                                    <strong style="color: var(--danger);">$<?php echo number_format($fee['remaining'], 2); ?></strong>
+                                <?php else: ?>
+                                    <span style="color: var(--success);">$0.00</span>
+                                <?php endif; ?>
+                            </td>
                             <td><?php echo date('d M Y', strtotime($fee['due_date'])); ?></td>
                             <td>
-                                <span class="status-badge <?php echo $fee['status']; ?>">
-                                    <?php echo ucfirst($fee['status']); ?>
-                                </span>
+                                <?php if ($fee['status'] == 'completed'): ?>
+                                    <span class="status-badge completed">✅ Paid</span>
+                                <?php elseif ($fee['paid'] > 0 && $fee['remaining'] > 0): ?>
+                                    <span class="status-badge partial">🔄 Partial</span>
+                                <?php else: ?>
+                                    <span class="status-badge pending">⏳ Pending</span>
+                                <?php endif; ?>
                             </td>
                         </tr>
-                    <?php endwhile; ?>
+                    <?php endforeach; ?>
                 </tbody>
+                <tfoot>
+                    <tr style="background: #f1f5f9; font-weight: 700;">
+                        <td><strong>TOTAL</strong></td>
+                        <td><strong>$<?php echo number_format($total_fees, 2); ?></strong></td>
+                        <td><strong>$<?php echo number_format($paid_amount, 2); ?></strong></td>
+                        <td><strong style="color: <?php echo $outstanding_balance > 0 ? 'var(--danger)' : 'var(--success)'; ?>;">
+                            $<?php echo number_format($outstanding_balance, 2); ?>
+                        </strong></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                </tfoot>
             </table>
         <?php else: ?>
             <div class="no-data">
                 <span class="big-icon">📭</span>
-                <p>No fee records found.</p>
+                <p>No fee records found for your department and year level.</p>
                 <p style="font-size: 0.9rem; color: #94a3b8;">Your fee structure will appear here once it's set up by the administration.</p>
             </div>
         <?php endif; ?>
@@ -355,23 +432,36 @@ $fname = $name_parts[0] ?? 'Student';
         <div id="paymentSection" style="margin-top: 40px; padding-top: 20px; border-top: 2px solid var(--border);">
             <h3>💳 Make a Payment</h3>
             
+            <?php if ($outstanding_balance > 0): ?>
+                <div class="fee-info-box">
+                    <p>💰 <strong>Outstanding Balance:</strong> $<?php echo number_format($outstanding_balance, 2); ?></p>
+                    <p>📅 You can pay the full amount or make a partial payment.</p>
+                </div>
+            <?php endif; ?>
+            
             <form method="POST" action="" id="paymentForm">
                 <div class="form-row">
                     <div class="form-group">
                         <label for="payment_amount">Amount to Pay ($)</label>
                         <input type="number" id="payment_amount" name="payment_amount" placeholder="Enter amount" min="1" step="0.01" required>
+                        <?php if ($outstanding_balance > 0): ?>
+                            <small style="color: var(--text-light);">Outstanding: $<?php echo number_format($outstanding_balance, 2); ?></small>
+                        <?php endif; ?>
                     </div>
                     
                     <div class="form-group">
                         <label for="fee_type">Select Fee Type</label>
                         <select id="fee_type" name="fee_type" required>
                             <option value="">Select fee type...</option>
-                            <option value="tuition_fee">Tuition Fee</option>
-                            <option value="library_fee">Library Fee</option>
-                            <option value="lab_fee">Lab Fee</option>
-                            <option value="sports_fee">Sports Fee</option>
-                            <option value="examination_fee">Examination Fee</option>
-                            <option value="partial_payment">Partial Payment</option>
+                            <?php foreach($fee_breakdown as $fee): ?>
+                                <?php if ($fee['remaining'] > 0): ?>
+                                    <option value="<?php echo $fee['fee_type']; ?>">
+                                        <?php echo ucfirst(str_replace('_', ' ', $fee['fee_type'])); ?> 
+                                        (Remaining: $<?php echo number_format($fee['remaining'], 2); ?>)
+                                    </option>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
+                            <option value="partial_payment">Partial Payment (General)</option>
                         </select>
                     </div>
                 </div>
@@ -401,24 +491,6 @@ $fname = $name_parts[0] ?? 'Student';
                         </div>
                     </div>
                     <input type="hidden" id="payment_method" name="payment_method" value="">
-                </div>
-                
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="card_number">Card/Account Number</label>
-                        <input type="text" id="card_number" placeholder="XXXX-XXXX-XXXX-XXXX">
-                    </div>
-                </div>
-                
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="expiry_date">Expiry Date</label>
-                        <input type="text" id="expiry_date" placeholder="MM/YY">
-                    </div>
-                    <div class="form-group">
-                        <label for="cvv">CVV</label>
-                        <input type="password" id="cvv" placeholder="***" maxlength="4">
-                    </div>
                 </div>
                 
                 <button type="submit" name="process_payment" class="btn btn-fee btn-block" style="margin-top: 20px;">
@@ -482,19 +554,14 @@ $fname = $name_parts[0] ?? 'Student';
 </footer>
 
 <script>
-// Payment Method Selection
 function selectPaymentMethod(element) {
-    // Remove selected class from all
     document.querySelectorAll('.payment-method-btn').forEach(btn => {
         btn.classList.remove('selected');
     });
-    // Add selected class to clicked
     element.classList.add('selected');
-    // Set hidden input value
     document.getElementById('payment_method').value = element.dataset.method;
 }
 
-// Receipt Generation
 function generateReceipt(reference, amount, feeType, date) {
     const receiptWindow = window.open('', '_blank', 'width=600,height=500');
     const formattedDate = new Date(date).toLocaleDateString('en-US', { 
@@ -573,7 +640,6 @@ function generateReceipt(reference, amount, feeType, date) {
     receiptWindow.document.close();
 }
 
-// Form Validation
 document.getElementById('paymentForm').addEventListener('submit', function(e) {
     const amount = document.getElementById('payment_amount').value;
     const feeType = document.getElementById('fee_type').value;
@@ -597,6 +663,14 @@ document.getElementById('paymentForm').addEventListener('submit', function(e) {
         return false;
     }
     
+    const outstanding = <?php echo $outstanding_balance; ?>;
+    if (parseFloat(amount) > outstanding) {
+        if (!confirm(`⚠️ You are paying $${amount} which is more than your outstanding balance of $${outstanding.toFixed(2)}. Do you want to continue?`)) {
+            e.preventDefault();
+            return false;
+        }
+    }
+    
     if (!confirm(`Confirm payment of $${amount} for ${feeType.replace('_', ' ')} using ${paymentMethod.replace('_', ' ')}?`)) {
         e.preventDefault();
         return false;
@@ -605,7 +679,6 @@ document.getElementById('paymentForm').addEventListener('submit', function(e) {
     return true;
 });
 
-// Autofill outstanding balance
 document.querySelector('.btn-pay-now')?.addEventListener('click', function() {
     const outstanding = <?php echo $outstanding_balance; ?>;
     if (outstanding > 0) {
@@ -613,8 +686,6 @@ document.querySelector('.btn-pay-now')?.addEventListener('click', function() {
         document.getElementById('payment_amount').focus();
     }
 });
-
-console.log('💳 Fee Management Module Loaded Successfully');
 </script>
 
 </body>

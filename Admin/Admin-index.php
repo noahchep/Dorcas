@@ -172,6 +172,7 @@ $notif_count = mysqli_fetch_assoc($notif_q)['count'] ?? 0;
         <a href="Admin-index.php?section=reports" class="<?php echo ($section === 'reports') ? 'active' : ''; ?>">Reports</a>
         <a href="Admin-index.php?section=kb" class="<?php echo ($section === 'kb') ? 'active' : ''; ?>">Knowledge Base</a>
         <a href="Admin-index.php?section=settings" class="<?php echo ($section === 'settings') ? 'active' : ''; ?>">Settings</a>
+        <a href="admin_fee_management.php" class="<?php echo ($section === 'fee_management') ? 'active' : ''; ?>">💳 Fee Management</a>
         <a href="../logout.php">Sign Out</a>
     </div>
 </nav>

@@ -861,7 +861,7 @@ function fuzzyDetectIntent($input) {
 }
 
 /* ============================================================
-    FEE MANAGEMENT FUNCTIONS - FIXED
+    FEE MANAGEMENT FUNCTIONS - COMPLETELY FIXED
 ============================================================ */
 
 // Get fee structure for a student based on department and year level
@@ -872,16 +872,20 @@ function getStudentFeeStructure($conn, $department, $year_level, $semester) {
               AND fs.year_level = ? 
               AND fs.semester = ? 
               ORDER BY fs.id ASC";
+    
     $stmt = $conn->prepare($query);
     if (!$stmt) {
         return [];
     }
-    // FIXED: Use "sss" for all string parameters
-    $semester_str = (string)$semester;
-    $stmt->bind_param("sss", $department, $year_level, $semester_str);
-    $stmt->execute();
-    $result = $stmt->get_result();
     
+    $stmt->bind_param("ssi", $department, $year_level, $semester);
+    
+    if (!$stmt->execute()) {
+        $stmt->close();
+        return [];
+    }
+    
+    $result = $stmt->get_result();
     $fees = [];
     while ($row = $result->fetch_assoc()) {
         $fees[] = $row;
@@ -892,38 +896,49 @@ function getStudentFeeStructure($conn, $department, $year_level, $semester) {
 
 // Get student's fee payments and calculate balances
 function getStudentFeeBalance($conn, $student_reg) {
-    // Get all fee structures for this student
+    // Get student department and year level
     $department = getStudentDepartment();
     $year_level = getStudentYearLevel($conn, $student_reg);
     $semester = getCurrentSemester();
     
     if (!$department) {
-        return ['error' => 'Department not found'];
+        return ['error' => 'Department not found for this student. Please contact the academic office.'];
     }
     
+    // Get fee structure
     $fee_structure = getStudentFeeStructure($conn, $department, $year_level, $semester);
     
     if (empty($fee_structure)) {
-        return ['error' => 'No fee structure found for your department and year level'];
+        return ['error' => 'No fee structure found for ' . $department . ', ' . $year_level . ', Semester ' . $semester . '. Please contact the finance office.'];
     }
     
-    // Get all payments made by this student
+    // Get payments
     $payment_query = "SELECT fee_type, SUM(amount) as paid_amount 
                       FROM fee_payments 
                       WHERE student_reg = ? 
                       AND status = 'completed'
                       GROUP BY fee_type";
-    $stmt = $conn->prepare($payment_query);
-    $stmt->bind_param("s", $student_reg);
-    $stmt->execute();
-    $payment_result = $stmt->get_result();
     
+    $stmt = $conn->prepare($payment_query);
+    if (!$stmt) {
+        return ['error' => 'Database error. Please try again later.'];
+    }
+    
+    $stmt->bind_param("s", $student_reg);
+    
+    if (!$stmt->execute()) {
+        $stmt->close();
+        return ['error' => 'Error fetching payment data. Please try again.'];
+    }
+    
+    $payment_result = $stmt->get_result();
     $paid_amounts = [];
     while ($row = $payment_result->fetch_assoc()) {
         $paid_amounts[$row['fee_type']] = floatval($row['paid_amount']);
     }
+    $stmt->close();
     
-    // Calculate total fees and paid amounts
+    // Calculate totals
     $fee_breakdown = [];
     $total_fees = 0;
     $total_paid = 0;
@@ -931,7 +946,7 @@ function getStudentFeeBalance($conn, $student_reg) {
     foreach ($fee_structure as $fee) {
         $fee_type = $fee['fee_type'];
         $amount = floatval($fee['amount']);
-        $paid = $paid_amounts[$fee_type] ?? 0;
+        $paid = isset($paid_amounts[$fee_type]) ? floatval($paid_amounts[$fee_type]) : 0;
         $remaining = $amount - $paid;
         
         $fee_breakdown[] = [
@@ -1203,7 +1218,8 @@ if ($is_fee_query) {
         echo "💡 <i>Once logged in, I can tell you about your fee balance, structure, and payment options!</i>";
         
         $stmt_bot = $conn->prepare("INSERT INTO chat_messages (conversation_id, sender_type, message) VALUES (?, 'bot', ?)");
-        $stmt_bot->bind_param("ss", $sess_id, "Fee query - login required");
+        $message = "Fee query - login required";
+        $stmt_bot->bind_param("ss", $sess_id, $message);  // <-- CHANGE $session_id to $sess_id
         $stmt_bot->execute();
         exit;
     }
@@ -1225,11 +1241,11 @@ if ($is_fee_query) {
     echo $response;
     
     $stmt_bot = $conn->prepare("INSERT INTO chat_messages (conversation_id, sender_type, message) VALUES (?, 'bot', ?)");
-    $stmt_bot->bind_param("ss", $sess_id, "Fee query response: " . $fee_intent);
+    $message = "Fee query response: " . $fee_intent;
+    $stmt_bot->bind_param("ss", $sess_id, $message);  // <-- CHANGE $session_id to $sess_id
     $stmt_bot->execute();
     exit;
 }
-
 /* ===============================
     6.5. ADMISSION & JOIN DATE CHECKS
 ================================ */

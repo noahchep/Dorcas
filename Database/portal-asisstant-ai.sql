@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jun 19, 2026 at 06:04 PM
+-- Generation Time: Aug 13, 2026 at 12:20 PM
 -- Server version: 10.4.32-MariaDB
--- PHP Version: 8.2.12
+-- PHP Version: 8.0.30
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -1765,7 +1765,19 @@ INSERT INTO `chat_messages` (`id`, `conversation_id`, `sender_type`, `message`, 
 (276, '6fja002gl5is4ju7ff57rp5efu', 'student', 'hi', '2026-04-15 06:12:40', NULL),
 (277, '6fja002gl5is4ju7ff57rp5efu', 'bot', 'hi too', '2026-04-15 06:12:40', NULL),
 (278, 'ievkvl88vhhre13fjpf6v8k2m8', 'student', 'hi', '2026-06-15 18:11:36', NULL),
-(279, 'ievkvl88vhhre13fjpf6v8k2m8', 'bot', 'hi too', '2026-06-15 18:11:36', NULL);
+(279, 'ievkvl88vhhre13fjpf6v8k2m8', 'bot', 'hi too', '2026-06-15 18:11:36', NULL),
+(280, 'da4i158ms3vclv9hoq239pl0ge', 'student', 'hi', '2026-07-14 16:27:30', NULL),
+(281, 'da4i158ms3vclv9hoq239pl0ge', 'bot', 'hi too', '2026-07-14 16:27:30', NULL),
+(282, 'da4i158ms3vclv9hoq239pl0ge', 'student', 'hi', '2026-07-14 16:49:12', NULL),
+(283, 'da4i158ms3vclv9hoq239pl0ge', 'bot', 'hi too', '2026-07-14 16:49:12', NULL),
+(284, 'dorj438qj4surukuib9qtfbvr4', 'student', 'hi', '2026-07-16 17:23:58', NULL),
+(285, 'dorj438qj4surukuib9qtfbvr4', 'bot', 'hi too', '2026-07-16 17:23:58', NULL),
+(286, 'dorj438qj4surukuib9qtfbvr4', 'bot', 'Fee query response: fee_balance', '2026-07-16 17:24:36', NULL),
+(287, 'dorj438qj4surukuib9qtfbvr4', 'bot', 'Fee query response: fee_balance', '2026-07-16 17:25:00', NULL),
+(288, 'dorj438qj4surukuib9qtfbvr4', 'bot', 'Fee query response: fee_structure', '2026-07-16 17:25:06', NULL),
+(289, 'qp1mfdntgaiudjk3bsp07fc6tm', 'bot', 'Fee query response: fee_balance', '2026-07-16 17:28:41', NULL),
+(290, 'r3bqf6gh6q3p3e6npt35b6lt1k', 'bot', 'Fee query response: fee_balance', '2026-08-13 10:13:33', NULL),
+(291, '7gmnqpe01u1noq5lrbs5aq218m', 'bot', 'Fee query response: fee_balance', '2026-08-13 10:13:53', NULL);
 
 -- --------------------------------------------------------
 
@@ -1836,6 +1848,117 @@ INSERT INTO `fees_structure` (`id`, `year`, `semester`, `year_level`, `category`
 (18, 2024, 1, 'Fourth Year', 'Library', 3000.00, '2026-06-08 16:55:23'),
 (19, 2024, 1, 'Fourth Year', 'ICT', 2000.00, '2026-06-08 16:55:23'),
 (20, 2024, 1, 'Fourth Year', 'Activity', 1500.00, '2026-06-08 16:55:23');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `fee_payments`
+--
+
+CREATE TABLE `fee_payments` (
+  `id` int(11) NOT NULL,
+  `student_reg` varchar(50) NOT NULL,
+  `fee_type` varchar(50) NOT NULL,
+  `amount` decimal(10,2) NOT NULL,
+  `payment_method` varchar(50) DEFAULT NULL,
+  `reference` varchar(50) DEFAULT NULL,
+  `payment_date` datetime DEFAULT NULL,
+  `due_date` date DEFAULT NULL,
+  `status` enum('pending','completed','failed','overdue') DEFAULT 'pending',
+  `fee_structure_id` int(11) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `fee_payments`
+--
+
+INSERT INTO `fee_payments` (`id`, `student_reg`, `fee_type`, `amount`, `payment_method`, `reference`, `payment_date`, `due_date`, `status`, `fee_structure_id`) VALUES
+(1, 'BSN/2026/00007', 'tuition_fee', 5000.00, 'mobile_money', 'PAY-20260629-BSN/20-5258', '2026-06-29 21:05:07', NULL, 'completed', NULL),
+(2, 'BSN/2024/0001', 'tuition_fee', 25000.00, 'credit_card', 'PAY-20240601-BSN-001', '2025-02-15 10:30:00', '2025-03-15', 'completed', NULL),
+(3, 'BSN/2024/0001', 'registration_fee', 5000.00, 'bank_transfer', 'PAY-20240601-BSN-002', '2025-02-16 14:20:00', '2025-03-15', 'completed', NULL),
+(4, 'BSN/2024/0001', 'library_fee', 3000.00, 'mobile_money', 'PAY-20240601-BSN-003', '2025-02-17 09:45:00', '2025-03-15', 'completed', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `fee_structure`
+--
+
+CREATE TABLE `fee_structure` (
+  `id` int(11) NOT NULL,
+  `department` varchar(100) NOT NULL,
+  `semester` int(11) NOT NULL,
+  `year_level` varchar(20) NOT NULL,
+  `fee_type` varchar(50) NOT NULL,
+  `amount` decimal(10,2) NOT NULL,
+  `due_date` date NOT NULL,
+  `description` text DEFAULT NULL,
+  `created_at` datetime NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `fee_structure`
+--
+
+INSERT INTO `fee_structure` (`id`, `department`, `semester`, `year_level`, `fee_type`, `amount`, `due_date`, `description`, `created_at`) VALUES
+(1, 'Nursing', 1, 'FirstYear', 'tuition_fee', 5000.00, '2026-07-04', 'm mhv', '2026-06-29 21:04:01'),
+(2, 'BSN', 1, 'FirstYear', 'tuition_fee', 25000.00, '2025-03-15', 'Tuition fee for First Year, Semester 1', '0000-00-00 00:00:00'),
+(3, 'BSN', 1, 'FirstYear', 'registration_fee', 5000.00, '2025-03-15', 'Registration fee for First Year, Semester 1', '0000-00-00 00:00:00'),
+(4, 'BSN', 1, 'FirstYear', 'library_fee', 3000.00, '2025-03-15', 'Library fee for First Year, Semester 1', '0000-00-00 00:00:00'),
+(5, 'BSN', 1, 'FirstYear', 'lab_fee', 2000.00, '2025-03-15', 'Lab fee for First Year, Semester 1', '0000-00-00 00:00:00'),
+(6, 'BSN', 1, 'FirstYear', 'sports_fee', 1500.00, '2025-03-15', 'Sports and activities fee for First Year, Semester 1', '0000-00-00 00:00:00'),
+(7, 'BSN', 2, 'FirstYear', 'tuition_fee', 25000.00, '2025-07-15', 'Tuition fee for First Year, Semester 2', '0000-00-00 00:00:00'),
+(8, 'BSN', 2, 'FirstYear', 'registration_fee', 5000.00, '2025-07-15', 'Registration fee for First Year, Semester 2', '0000-00-00 00:00:00'),
+(9, 'BSN', 2, 'FirstYear', 'library_fee', 3000.00, '2025-07-15', 'Library fee for First Year, Semester 2', '0000-00-00 00:00:00'),
+(10, 'BSN', 2, 'FirstYear', 'lab_fee', 2000.00, '2025-07-15', 'Lab fee for First Year, Semester 2', '0000-00-00 00:00:00'),
+(11, 'BSN', 2, 'FirstYear', 'sports_fee', 1500.00, '2025-07-15', 'Sports and activities fee for First Year, Semester 2', '0000-00-00 00:00:00'),
+(12, 'BSN', 1, 'SecondYear', 'tuition_fee', 26000.00, '2025-03-15', 'Tuition fee for Second Year, Semester 1', '0000-00-00 00:00:00'),
+(13, 'BSN', 1, 'SecondYear', 'registration_fee', 5000.00, '2025-03-15', 'Registration fee for Second Year, Semester 1', '0000-00-00 00:00:00'),
+(14, 'BSN', 1, 'SecondYear', 'library_fee', 3000.00, '2025-03-15', 'Library fee for Second Year, Semester 1', '0000-00-00 00:00:00'),
+(15, 'BSN', 1, 'SecondYear', 'lab_fee', 2500.00, '2025-03-15', 'Lab fee for Second Year, Semester 1', '0000-00-00 00:00:00'),
+(16, 'BSN', 1, 'SecondYear', 'sports_fee', 1500.00, '2025-03-15', 'Sports and activities fee for Second Year, Semester 1', '0000-00-00 00:00:00'),
+(17, 'BSN', 2, 'SecondYear', 'tuition_fee', 26000.00, '2025-07-15', 'Tuition fee for Second Year, Semester 2', '0000-00-00 00:00:00'),
+(18, 'BSN', 2, 'SecondYear', 'registration_fee', 5000.00, '2025-07-15', 'Registration fee for Second Year, Semester 2', '0000-00-00 00:00:00'),
+(19, 'BSN', 2, 'SecondYear', 'library_fee', 3000.00, '2025-07-15', 'Library fee for Second Year, Semester 2', '0000-00-00 00:00:00'),
+(20, 'BSN', 2, 'SecondYear', 'lab_fee', 2500.00, '2025-07-15', 'Lab fee for Second Year, Semester 2', '0000-00-00 00:00:00'),
+(21, 'BSN', 2, 'SecondYear', 'sports_fee', 1500.00, '2025-07-15', 'Sports and activities fee for Second Year, Semester 2', '0000-00-00 00:00:00'),
+(22, 'BSN', 1, 'ThirdYear', 'tuition_fee', 27000.00, '2025-03-15', 'Tuition fee for Third Year, Semester 1', '0000-00-00 00:00:00'),
+(23, 'BSN', 1, 'ThirdYear', 'registration_fee', 5000.00, '2025-03-15', 'Registration fee for Third Year, Semester 1', '0000-00-00 00:00:00'),
+(24, 'BSN', 1, 'ThirdYear', 'library_fee', 3000.00, '2025-03-15', 'Library fee for Third Year, Semester 1', '0000-00-00 00:00:00'),
+(25, 'BSN', 1, 'ThirdYear', 'lab_fee', 3000.00, '2025-03-15', 'Lab fee for Third Year, Semester 1', '0000-00-00 00:00:00'),
+(26, 'BSN', 1, 'ThirdYear', 'sports_fee', 1500.00, '2025-03-15', 'Sports and activities fee for Third Year, Semester 1', '0000-00-00 00:00:00'),
+(27, 'BSN', 2, 'ThirdYear', 'tuition_fee', 27000.00, '2025-07-15', 'Tuition fee for Third Year, Semester 2', '0000-00-00 00:00:00'),
+(28, 'BSN', 2, 'ThirdYear', 'registration_fee', 5000.00, '2025-07-15', 'Registration fee for Third Year, Semester 2', '0000-00-00 00:00:00'),
+(29, 'BSN', 2, 'ThirdYear', 'library_fee', 3000.00, '2025-07-15', 'Library fee for Third Year, Semester 2', '0000-00-00 00:00:00'),
+(30, 'BSN', 2, 'ThirdYear', 'lab_fee', 3000.00, '2025-07-15', 'Lab fee for Third Year, Semester 2', '0000-00-00 00:00:00'),
+(31, 'BSN', 2, 'ThirdYear', 'sports_fee', 1500.00, '2025-07-15', 'Sports and activities fee for Third Year, Semester 2', '0000-00-00 00:00:00'),
+(32, 'BSN', 1, 'FourthYear', 'tuition_fee', 28000.00, '2025-03-15', 'Tuition fee for Fourth Year, Semester 1', '0000-00-00 00:00:00'),
+(33, 'BSN', 1, 'FourthYear', 'registration_fee', 5000.00, '2025-03-15', 'Registration fee for Fourth Year, Semester 1', '0000-00-00 00:00:00'),
+(34, 'BSN', 1, 'FourthYear', 'library_fee', 3000.00, '2025-03-15', 'Library fee for Fourth Year, Semester 1', '0000-00-00 00:00:00'),
+(35, 'BSN', 1, 'FourthYear', 'lab_fee', 3500.00, '2025-03-15', 'Lab fee for Fourth Year, Semester 1', '0000-00-00 00:00:00'),
+(36, 'BSN', 1, 'FourthYear', 'sports_fee', 1500.00, '2025-03-15', 'Sports and activities fee for Fourth Year, Semester 1', '0000-00-00 00:00:00'),
+(37, 'BSN', 2, 'FourthYear', 'tuition_fee', 28000.00, '2025-07-15', 'Tuition fee for Fourth Year, Semester 2', '0000-00-00 00:00:00'),
+(38, 'BSN', 2, 'FourthYear', 'registration_fee', 5000.00, '2025-07-15', 'Registration fee for Fourth Year, Semester 2', '0000-00-00 00:00:00'),
+(39, 'BSN', 2, 'FourthYear', 'library_fee', 3000.00, '2025-07-15', 'Library fee for Fourth Year, Semester 2', '0000-00-00 00:00:00'),
+(40, 'BSN', 2, 'FourthYear', 'lab_fee', 3500.00, '2025-07-15', 'Lab fee for Fourth Year, Semester 2', '0000-00-00 00:00:00'),
+(41, 'BSN', 2, 'FourthYear', 'sports_fee', 1500.00, '2025-07-15', 'Sports and activities fee for Fourth Year, Semester 2', '0000-00-00 00:00:00'),
+(42, 'BBM', 1, 'FirstYear', 'tuition_fee', 22000.00, '2025-03-15', 'Tuition fee for BBM First Year, Semester 1', '0000-00-00 00:00:00'),
+(43, 'BBM', 1, 'FirstYear', 'registration_fee', 5000.00, '2025-03-15', 'Registration fee for BBM First Year, Semester 1', '0000-00-00 00:00:00'),
+(44, 'BBM', 1, 'FirstYear', 'library_fee', 3000.00, '2025-03-15', 'Library fee for BBM First Year, Semester 1', '0000-00-00 00:00:00'),
+(45, 'BAF', 1, 'FirstYear', 'tuition_fee', 23000.00, '2025-03-15', 'Tuition fee for BAF First Year, Semester 1', '0000-00-00 00:00:00'),
+(46, 'BAF', 1, 'FirstYear', 'registration_fee', 5000.00, '2025-03-15', 'Registration fee for BAF First Year, Semester 1', '0000-00-00 00:00:00'),
+(47, 'BAF', 1, 'FirstYear', 'library_fee', 3000.00, '2025-03-15', 'Library fee for BAF First Year, Semester 1', '0000-00-00 00:00:00'),
+(48, 'Nursing', 1, 'First Year', 'tuition_fee', 25000.00, '2025-03-15', 'Tuition fee for First Year, Semester 1', '0000-00-00 00:00:00'),
+(49, 'Nursing', 1, 'First Year', 'registration_fee', 5000.00, '2025-03-15', 'Registration fee for First Year, Semester 1', '0000-00-00 00:00:00'),
+(50, 'Nursing', 1, 'First Year', 'library_fee', 3000.00, '2025-03-15', 'Library fee for First Year, Semester 1', '0000-00-00 00:00:00'),
+(51, 'Nursing', 1, 'First Year', 'lab_fee', 2000.00, '2025-03-15', 'Lab fee for First Year, Semester 1', '0000-00-00 00:00:00'),
+(52, 'Management', 1, 'First Year', 'tuition_fee', 22000.00, '2025-03-15', 'Tuition fee for Management First Year, Semester 1', '0000-00-00 00:00:00'),
+(53, 'Management', 1, 'First Year', 'registration_fee', 5000.00, '2025-03-15', 'Registration fee for Management First Year, Semester 1', '0000-00-00 00:00:00'),
+(54, 'Management', 1, 'First Year', 'library_fee', 3000.00, '2025-03-15', 'Library fee for Management First Year, Semester 1', '0000-00-00 00:00:00'),
+(55, 'Information Technology', 1, 'First Year', 'tuition_fee', 23000.00, '2025-03-15', 'Tuition fee for IT First Year, Semester 1', '0000-00-00 00:00:00'),
+(56, 'Information Technology', 1, 'First Year', 'registration_fee', 5000.00, '2025-03-15', 'Registration fee for IT First Year, Semester 1', '0000-00-00 00:00:00'),
+(57, 'Information Technology', 1, 'First Year', 'library_fee', 3000.00, '2025-03-15', 'Library fee for IT First Year, Semester 1', '0000-00-00 00:00:00'),
+(58, 'Nursing', 1, 'FirstYear', 'tuition_fee', 5000.00, '2026-07-23', 'Pay on Time', '2026-07-16 20:27:41');
 
 -- --------------------------------------------------------
 
@@ -1947,13 +2070,12 @@ INSERT INTO `registered_courses` (`id`, `student_reg_no`, `unit_code`, `departme
 (6, 'BEC/2026/00003', 'BIT3105', 'Enterprise Computing', 'Regular', 'Day', 'Jan/Apr', '2026', 'Confirmed', '2026-03-31 20:12:17'),
 (8, 'BEC/2026/00003', 'BIT3201', 'Enterprise Computing', 'Regular', 'Day', 'Jan/Apr', '2026', 'Confirmed', '2026-04-01 06:38:46'),
 (10, 'BIS/2026/00001', 'BAF1101', 'Information Science', 'Regular', 'Day', 'Jan/Apr', '2026', 'Confirmed', '2026-04-01 06:43:52'),
-(11, 'BIT/2026/00005', 'BBM2103', 'Information Technology', 'Regular', 'Day', 'Jan/Apr', '2026', 'Confirmed', '2026-04-01 07:21:10'),
 (12, 'BEC/2026/00003', 'BMA3102', 'Enterprise Computing', 'Regular', 'Day', 'Jan/Apr', '2026', 'Confirmed', '2026-04-01 10:09:46'),
 (16, 'BSN/2026/00007', 'BSN1101', 'Nursing', 'Regular', 'Day', 'Jan/Apr', '2026', 'Confirmed', '2026-04-09 09:02:12'),
 (17, 'BSN/2026/00007', 'BSN1102', 'Nursing', 'Regular', 'Day', 'Jan/Apr', '2026', 'Confirmed', '2026-04-09 09:28:47'),
 (18, 'BSN/2026/00007', 'BSN1106', 'Nursing', 'Regular', 'Day', 'Jan/Apr', '2026', 'Confirmed', '2026-04-09 09:32:05'),
-(23, 'BIT/2026/00005', 'BUCU007', 'Information Technology', 'Regular', 'Day', 'Jan/Apr', '2026', 'Provisional', '2026-04-11 06:37:26'),
-(24, 'BBM/2026/00006', 'BBM1102', 'Management', 'Regular', 'Day', 'Jan/Apr', '2026', 'Provisional', '2026-04-15 09:33:36');
+(24, 'BBM/2026/00006', 'BBM1102', 'Management', 'Regular', 'Day', 'Jan/Apr', '2026', 'Provisional', '2026-04-15 09:33:36'),
+(26, 'BSN/2026/00007', 'BSN1107', 'Nursing', 'Regular', 'Day', 'Jan/Apr', '2026', 'Confirmed', '2026-06-29 16:24:12');
 
 -- --------------------------------------------------------
 
@@ -2006,7 +2128,6 @@ CREATE TABLE `survey_responses` (
 --
 
 INSERT INTO `survey_responses` (`id`, `user_id`, `challenge_type`, `guidance_need`, `chatbot_help`, `ui_experience`, `academic_value`, `ease_rating`, `student_comments`, `submitted_at`) VALUES
-(11, 33, 'Prerequisite Info', NULL, 'Mostly Accurate', 'User Friendly', 'Significant', 5, 'The system has helped me to register for my 1st semester units', '2026-04-01 07:22:18'),
 (12, 39, 'Unit Selection', NULL, 'Highly Accurate', 'Very Intuitive', 'Significant', 5, 'the system is working perfectly only few improvement needs to be done', '2026-04-15 09:08:04'),
 (13, 38, 'Technical Error', NULL, 'Mostly Accurate', 'User Friendly', 'Moderate', 3, 'good', '2026-04-15 09:34:16');
 
@@ -2284,12 +2405,12 @@ CREATE TABLE `users` (
 
 INSERT INTO `users` (`id`, `full_name`, `reg_number`, `email`, `password`, `password_changed`, `role`, `department`, `phone`, `created_at`, `survey_done`, `reset_token`, `reset_expires`) VALUES
 (1, 'System Admin', 'ADMIN/001', 'admin@mku.ac.ke', '$2y$10$y4l5kIMWsY8hqLN1xyVncuBy7ZNgCMkKdm8/jVGl.y3nIF9DxApTy', 1, 'admin', '', NULL, '2026-01-18 19:01:19', 1, '93ce60411ce53614781879d59612217eaa66b74acb90d07bfccf910dcfd00944', '2026-06-17 21:46:33'),
-(33, 'Chepchieng Noah', 'BIT/2026/00005', 'veramichael678@gmail.com', '$2y$10$HDIZVtQDe3GxqEoAoNRiIOiAH95HbECQgCB2JEPBNnnLaKbpCwjgq', 0, 'student', 'Information Technology', NULL, '2026-04-01 07:10:08', 1, NULL, NULL),
 (38, 'Noah chep', 'BBM/2026/00006', 'noahchep1@gmail.com', '$2y$10$NkBVYY0DOB6tOlFXPUVQAOFo8ErYeroO3xhyBDx5LNInwAw4/OH1S', 0, 'student', 'Management', NULL, '2026-04-09 07:23:08', 1, NULL, NULL),
 (39, 'Novrah', 'BSN/2026/00007', 'novrah4g@gmail.com', '$2y$10$M7DQOFtSArRE0HFeMtCiR.Tywu3efOm1Zg3t3dF8dfPsP53v02a0W', 0, 'student', 'Nursing', NULL, '2026-04-09 08:09:49', 1, NULL, NULL),
 (42, 'Arfican', 'LEC/2026/00001', 'africanpreetypoet@gmail.com', '$2y$10$.xlxFN3eRq2/gbMuabaFhuhuipG7GoxachgwUGu9Ch5UKVBnM.0dS', 1, 'lecturer', 'Information Technology', '0759768770', '2026-04-11 04:36:12', 0, NULL, NULL),
 (63, 'Dr. John Smith', 'LEC/2026/00002', 'john.smith@mku.ac.ke', '$2y$10$IOK.CB4RBdrTNCOA.LXLC.T39h2oZqqL9JQA2QfzTa.zbeTezqP4K', 0, 'lecturer', 'Management', '0759768770', '2026-04-11 10:14:30', 0, NULL, NULL),
-(64, 'Dr. Michael', 'LEC/2026/00003', 'dr_michael@gmail.com', '$2y$10$UFipm.AtaBtC8KlB9FYhpu7XtEXezVSM9yZ4PFGiN0U/EC1pdlgTe', 0, 'lecturer', 'Nursing', '+254791730556', '2026-04-15 08:55:05', 0, NULL, NULL);
+(64, 'Dr. Michael', 'LEC/2026/00003', 'dr_michael@gmail.com', '$2y$10$UFipm.AtaBtC8KlB9FYhpu7XtEXezVSM9yZ4PFGiN0U/EC1pdlgTe', 0, 'lecturer', 'Nursing', '+254791730556', '2026-04-15 08:55:05', 0, NULL, NULL),
+(66, 'Dorcas', 'BIS/2026/00008', 'taliajemosop@gmail.com', '$2y$10$01GsKZQb/tR.5GpaLcH13eftnt6NHE13cQHDEPSmiOv2fsZBLspK6', 0, 'student', 'Information Science', '0759768770', '2026-07-16 17:21:09', 0, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -2415,6 +2536,23 @@ ALTER TABLE `fees_structure`
   ADD UNIQUE KEY `unique_fee` (`year`,`semester`,`year_level`,`category`);
 
 --
+-- Indexes for table `fee_payments`
+--
+ALTER TABLE `fee_payments`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `student_reg` (`student_reg`),
+  ADD KEY `fee_structure_id` (`fee_structure_id`);
+
+--
+-- Indexes for table `fee_structure`
+--
+ALTER TABLE `fee_structure`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `department` (`department`),
+  ADD KEY `semester` (`semester`),
+  ADD KEY `year_level` (`year_level`);
+
+--
 -- Indexes for table `payment_transactions`
 --
 ALTER TABLE `payment_transactions`
@@ -2514,7 +2652,7 @@ ALTER TABLE `assignment_submissions`
 -- AUTO_INCREMENT for table `chat_messages`
 --
 ALTER TABLE `chat_messages`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=280;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=292;
 
 --
 -- AUTO_INCREMENT for table `course_materials`
@@ -2529,6 +2667,18 @@ ALTER TABLE `fees_structure`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1644;
 
 --
+-- AUTO_INCREMENT for table `fee_payments`
+--
+ALTER TABLE `fee_payments`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
+-- AUTO_INCREMENT for table `fee_structure`
+--
+ALTER TABLE `fee_structure`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=59;
+
+--
 -- AUTO_INCREMENT for table `payment_transactions`
 --
 ALTER TABLE `payment_transactions`
@@ -2538,7 +2688,7 @@ ALTER TABLE `payment_transactions`
 -- AUTO_INCREMENT for table `registered_courses`
 --
 ALTER TABLE `registered_courses`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
 
 --
 -- AUTO_INCREMENT for table `student_fees`
@@ -2562,7 +2712,7 @@ ALTER TABLE `timetable`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=65;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=67;
 
 --
 -- AUTO_INCREMENT for table `vocabulary`

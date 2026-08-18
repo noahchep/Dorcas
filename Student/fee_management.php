@@ -71,12 +71,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Get fee structure from fee_structure table based on student's department and year level
+// --- FIXED: Get fee structure from fee_structure table ---
+// Map year level format from your database
+$year_level_mapping = [
+    'FirstYear' => 'First Year',
+    'SecondYear' => 'Second Year', 
+    'ThirdYear' => 'Third Year',
+    'FourthYear' => 'Fourth Year'
+];
+
+$db_year_level = $year_level_mapping[$student_year_level] ?? 'First Year';
+
+// Query the fee_structure table (not fees_structure)
 $fee_structure_query = "SELECT * FROM fee_structure 
                         WHERE department = '$student_dept' 
                         AND semester = '$current_semester'
-                        AND year_level = '$student_year_level'
+                        AND year_level = '$db_year_level'
                         ORDER BY id ASC";
+
+// Debug - uncomment to check query
+// echo "Query: " . $fee_structure_query;
+
 $fee_structure_result = mysqli_query($conn, $fee_structure_query);
 
 // Get all payments made by this student

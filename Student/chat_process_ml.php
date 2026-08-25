@@ -18,6 +18,69 @@ $user_input = strtolower(trim($_POST['message'] ?? ''));
 if (empty($user_input)) { exit; }
 
 /* ============================================================
+    UPDATED: SEMESTER DETECTION FOR NEW STUDENTS
+============================================================ */
+
+function getCurrentSemester() {
+    $current_month = date('n');
+    
+    // Kenyan academic calendar:
+    // 1st Semester: September - December (months 9-12)
+    // 2nd Semester: January - April (months 1-4)
+    // Holiday: May - August (months 5-8)
+    
+    if ($current_month >= 9 && $current_month <= 12) {
+        return 1; // 1st Semester
+    } elseif ($current_month >= 1 && $current_month <= 4) {
+        return 2; // 2nd Semester
+    } else {
+        // May-August is holiday
+        // Default to 1st Semester (September start)
+        return 1;
+    }
+}
+
+// NEW: Check if student is new (admitted in current year)
+function isNewStudent($student_reg) {
+    if (preg_match('/\/(\d{4})\//', $student_reg, $matches)) {
+        $admission_year = intval($matches[1]);
+        $current_year = date('Y');
+        return ($admission_year == $current_year);
+    }
+    return false;
+}
+
+// NEW: Get the semester a student should be in based on admission
+function getStudentCurrentSemester($conn, $student_reg) {
+    // Check if student is new (admitted this year)
+    $is_new = isNewStudent($student_reg);
+    
+    if ($is_new) {
+        // New students start with 1st Semester
+        return 1;
+    }
+    
+    // For returning students, use the regular semester detection
+    $current_month = date('n');
+    if ($current_month >= 9 && $current_month <= 12) {
+        return 1;
+    } elseif ($current_month >= 1 && $current_month <= 4) {
+        return 2;
+    } else {
+        // Holiday period - determine next semester
+        if ($current_month >= 5 && $current_month <= 8) {
+            // August - September transition
+            if ($current_month >= 5 && $current_month <= 7) {
+                return 2; // Still in 2nd Semester period
+            } else {
+                return 1; // August - returning students prepare for 1st Semester
+            }
+        }
+        return 1;
+    }
+}
+
+/* ============================================================
     1.5. DEPARTMENT HELPER FUNCTIONS
 ============================================================ */
 
@@ -32,13 +95,14 @@ function getStudentDepartment() {
     return null;
 }
 
-// Get student's year level from registration number
+// UPDATED: Get student year level from registration number with better handling
 function getStudentYearLevelFromReg($student_reg) {
     if (preg_match('/\/(\d{4})\//', $student_reg, $matches)) {
         $admission_year = intval($matches[1]);
         $current_year = date('Y');
         $year_diff = $current_year - $admission_year;
         
+        // For new students (year_diff = 0)
         if ($year_diff == 0) return 'First Year';
         if ($year_diff == 1) return 'Second Year';
         if ($year_diff == 2) return 'Third Year';
@@ -47,7 +111,7 @@ function getStudentYearLevelFromReg($student_reg) {
     return 'First Year';
 }
 
-// Get units filtered by student's department from academic_workload
+// UPDATED: Get units filtered by student's department and semester
 function getUnitsByStudentDepartment($conn, $department, $year_level, $semester_num) {
     if (!$department) {
         return [];
@@ -74,7 +138,7 @@ function getUnitsByStudentDepartment($conn, $department, $year_level, $semester_
     return $units;
 }
 
-// Get timetable filtered by student's department
+// UPDATED: Get timetable filtered by student's department and semester
 function getStudentTimetableByDepartment($conn, $department, $year_level, $semester_num) {
     if (!$department) {
         return [];
@@ -89,7 +153,7 @@ function getStudentTimetableByDepartment($conn, $department, $year_level, $semes
               ORDER BY FIELD(t.day_of_week, 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'), t.time_from";
     
     $stmt = $conn->prepare($query);
-    $stmt->bind_param("sss", $department, $year_level, $semester_num);
+    $stmt->bind_param("ssi", $department, $year_level, $semester_num);
     $stmt->execute();
     $result = $stmt->get_result();
     
@@ -599,7 +663,9 @@ function fuzzySearchUnits($search_term, $conn, $limit = 5) {
     4. UNIT FILTERING & REGISTRATION FUNCTIONS
 ============================================================ */
 
+// UPDATED: Get student year level with better new student handling
 function getStudentYearLevel($conn, $student_reg) {
+    // First check if student has registered courses
     $query = "SELECT DISTINCT t.year_level 
               FROM registered_courses rc 
               JOIN timetable t ON rc.unit_code = t.unit_code 
@@ -618,12 +684,15 @@ function getStudentYearLevel($conn, $student_reg) {
         return $row['year_level'];
     }
     
-    return getStudentYearLevelFromReg($student_reg);
-}
-
-function getCurrentSemester() {
-    $current_month = date('n');
-    return ($current_month >= 1 && $current_month <= 6) ? 1 : 2;
+    // If no registered courses, determine by admission year
+    $year_level = getStudentYearLevelFromReg($student_reg);
+    
+    // If new student (admitted this year), they are First Year
+    if (isNewStudent($student_reg)) {
+        return 'First Year';
+    }
+    
+    return $year_level;
 }
 
 function getSemesterName($semester_num) {
@@ -636,7 +705,7 @@ function getStudentTimetable($conn, $year_level, $semester_num) {
               WHERE year_level = ? AND semester = ? 
               ORDER BY FIELD(day_of_week, 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'), time_from";
     $stmt = $conn->prepare($query);
-    $stmt->bind_param("ss", $year_level, $semester_num);
+    $stmt->bind_param("si", $year_level, $semester_num);
     $stmt->execute();
     $result = $stmt->get_result();
     
@@ -665,6 +734,7 @@ function getUnitTitles($conn, $unit_codes) {
     return $titles;
 }
 
+// UPDATED: Get student registered units with semester awareness
 function getStudentRegisteredUnits($conn, $student_reg, $year_level, $semester_num) {
     $student_department = getStudentDepartment();
     
@@ -1219,7 +1289,7 @@ if ($is_fee_query) {
         
         $stmt_bot = $conn->prepare("INSERT INTO chat_messages (conversation_id, sender_type, message) VALUES (?, 'bot', ?)");
         $message = "Fee query - login required";
-        $stmt_bot->bind_param("ss", $sess_id, $message);  // <-- CHANGE $session_id to $sess_id
+        $stmt_bot->bind_param("ss", $sess_id, $message);
         $stmt_bot->execute();
         exit;
     }
@@ -1242,7 +1312,7 @@ if ($is_fee_query) {
     
     $stmt_bot = $conn->prepare("INSERT INTO chat_messages (conversation_id, sender_type, message) VALUES (?, 'bot', ?)");
     $message = "Fee query response: " . $fee_intent;
-    $stmt_bot->bind_param("ss", $sess_id, $message);  // <-- CHANGE $session_id to $sess_id
+    $stmt_bot->bind_param("ss", $sess_id, $message);
     $stmt_bot->execute();
     exit;
 }
@@ -2173,6 +2243,23 @@ $social_responses = [
 ];
 
 /* ===============================
+    GET STUDENT INFORMATION & SEMESTER (UPDATED)
+================================ */
+$student_reg = $_SESSION['reg_number'] ?? null;
+
+// Determine the correct semester for the student
+if ($student_reg) {
+    // Use the new function that handles new students properly
+    $current_semester_num = getStudentCurrentSemester($conn, $student_reg);
+    $is_new_student = isNewStudent($student_reg);
+} else {
+    $current_semester_num = getCurrentSemester();
+    $is_new_student = false;
+}
+
+$semester_name = getSemesterName($current_semester_num);
+
+/* ===============================
     13. MAIN ACTION LOGIC
 ================================ */
 switch ($intent) {
@@ -2532,7 +2619,7 @@ switch ($intent) {
         }
         
         $student_year = getStudentYearLevel($conn, $student_reg);
-        $current_semester_num = getCurrentSemester();
+        $current_semester_num = getStudentCurrentSemester($conn, $student_reg);
         $semester_name = getSemesterName($current_semester_num);
         
         $units = getUnitsByStudentDepartment($conn, $student_department, $student_year, $current_semester_num);
@@ -2571,7 +2658,7 @@ switch ($intent) {
         }
         
         $student_year = getStudentYearLevel($conn, $student_reg);
-        $current_semester_num = getCurrentSemester();
+        $current_semester_num = getStudentCurrentSemester($conn, $student_reg);
         $semester_name = getSemesterName($current_semester_num);
         $reg_status = getStudentRegisteredUnits($conn, $student_reg, $student_year, $current_semester_num);
         
@@ -2636,7 +2723,7 @@ switch ($intent) {
         }
         
         $student_year = getStudentYearLevel($conn, $student_reg);
-        $current_semester_num = getCurrentSemester();
+        $current_semester_num = getStudentCurrentSemester($conn, $student_reg);
         $semester_name = getSemesterName($current_semester_num);
         
         $timetable = getStudentTimetableByDepartment($conn, $student_department, $student_year, $current_semester_num);
@@ -2684,7 +2771,7 @@ switch ($intent) {
         }
         
         $student_year = getStudentYearLevel($conn, $student_reg);
-        $current_semester_num = getCurrentSemester();
+        $current_semester_num = getStudentCurrentSemester($conn, $student_reg);
         $semester_name = getSemesterName($current_semester_num);
         
         $timetable = getStudentTimetableByDepartment($conn, $student_department, $student_year, $current_semester_num);
@@ -2719,7 +2806,7 @@ switch ($intent) {
         }
         
         $student_year = getStudentYearLevel($conn, $student_reg);
-        $current_semester_num = getCurrentSemester();
+        $current_semester_num = getStudentCurrentSemester($conn, $student_reg);
         $semester_name = getSemesterName($current_semester_num);
         $reg_status = getStudentRegisteredUnits($conn, $student_reg, $student_year, $current_semester_num);
         
@@ -2758,12 +2845,14 @@ switch ($intent) {
             if ($result->num_rows > 0) {
                 $row = $result->fetch_assoc();
                 $student_year = getStudentYearLevel($conn, $student_reg);
+                $current_semester_num = getStudentCurrentSemester($conn, $student_reg);
                 echo "<b>👤 Your Profile</b><br>";
                 echo "• Name: {$row['full_name']}<br>";
                 echo "• Registration Number: {$row['reg_number']}<br>";
                 echo "• Email: {$row['email']}<br>";
                 echo "• Department: <b>{$row['department']}</b><br>";
                 echo "• Current Year Level: <b>{$student_year}</b><br>";
+                echo "• Current Semester: <b>" . getSemesterName($current_semester_num) . "</b><br>";
                 echo "<br>💡 <i>Say 'Show my timetable' to see your class schedule!</i>";
             } else {
                 echo "Hmm, I couldn't find your information. 🤔";
@@ -2779,7 +2868,7 @@ switch ($intent) {
         
         if ($student_reg) {
             $student_year = getStudentYearLevel($conn, $student_reg);
-            $current_semester_num = getCurrentSemester();
+            $current_semester_num = getStudentCurrentSemester($conn, $student_reg);
             $semester_name = getSemesterName($current_semester_num);
             $reg_status = getStudentRegisteredUnits($conn, $student_reg, $student_year, $current_semester_num);
             
@@ -2965,7 +3054,7 @@ switch ($intent) {
                 } else {
                     $student_year = getStudentYearLevel($conn, $student_reg);
                     $student_department = getStudentDepartment();
-                    $current_semester_num = getCurrentSemester();
+                    $current_semester_num = getStudentCurrentSemester($conn, $student_reg);
                     $required_units = getUnitsByStudentDepartment($conn, $student_department, $student_year, $current_semester_num);
                     $required_codes = array_column($required_units, 'unit_code');
                     

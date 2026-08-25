@@ -29,19 +29,60 @@ $user = mysqli_fetch_assoc($user_q);
 
 $reg_number = $user['reg_number'];
 $full_name  = $user['full_name'];
-$student_department = $user['department'];  // This is the key!
+$student_department = $user['department'];
 
 /* ==========================
-   FETCH TIMETABLE DATA - FILTERED BY DEPARTMENT
+   DETERMINE CORRECT SEMESTER FOR STUDENT
 ========================== */
-$semester = "Jan-Apr";
+// Helper function to check if student is new (admitted in current year)
+function isNewStudent($reg_number) {
+    if (preg_match('/\/(\d{4})\//', $reg_number, $matches)) {
+        $admission_year = intval($matches[1]);
+        $current_year = date('Y');
+        return ($admission_year == $current_year);
+    }
+    return false;
+}
+
+// Helper function to get student's current semester
+function getStudentCurrentSemester($reg_number) {
+    // Check if student is new (admitted this year)
+    $is_new = isNewStudent($reg_number);
+    
+    if ($is_new) {
+        // New students start with 1st Semester
+        return 1;
+    }
+    
+    // For returning students, follow the academic calendar
+    $current_month = date('n');
+    if ($current_month >= 9 && $current_month <= 12) {
+        return 1; // 1st Semester
+    } elseif ($current_month >= 1 && $current_month <= 4) {
+        return 2; // 2nd Semester
+    } else {
+        // Holiday period (May-August) - default to next semester
+        return 1;
+    }
+}
+
+// Determine semester
+$semester_code = getStudentCurrentSemester($reg_number);
+$semester = ($semester_code == 1) ? "1st Semester" : "2nd Semester";
 $academic_year = "2025/2026";
 
-// IMPORTANT: Filter by student's department!
+// Check if student is new (for display purposes)
+$is_new_student = isNewStudent($reg_number);
+
+/* ==========================
+   FETCH TIMETABLE DATA - FILTERED BY DEPARTMENT AND SEMESTER
+========================== */
+// IMPORTANT: Filter by student's department AND the correct semester!
 $timetable_q = mysqli_query(
     $conn, 
     "SELECT * FROM timetable 
-     WHERE department = '$student_department'
+     WHERE department = '$student_department' 
+     AND semester = '$semester_code'
      ORDER BY FIELD(day_of_week, 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'), 
      time_from ASC"
 );
@@ -109,6 +150,7 @@ switch($student_department) {
         .container { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
         
         .student-strip { background: #e0e7ff; padding: 12px 20px; border-radius: 10px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; color: var(--primary-dark); font-weight: 700; font-size: 0.9rem; flex-wrap: wrap; gap: 10px; }
+        .new-student-badge { background: #10b981; color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; }
 
         .card { background: var(--white); border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); padding: 25px; border: 1px solid var(--border); overflow-x: auto; }
         .card-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 20px; color: var(--text-main); border-bottom: 1px solid var(--border); padding-bottom: 12px; text-align: center; }
@@ -123,6 +165,9 @@ switch($student_department) {
         .no-data { text-align: center; padding: 40px; color: var(--text-light); }
         
         footer { text-align: center; padding: 40px; color: var(--text-light); font-size: 0.85rem; }
+        
+        .semester-info { text-align: center; padding: 10px; background: #f1f5f9; border-radius: 8px; margin-bottom: 15px; font-size: 0.9rem; }
+        .semester-info strong { color: var(--primary); }
     </style>
 </head>
 <body>
@@ -155,13 +200,27 @@ switch($student_department) {
 <div class="container">
     <div class="student-strip">
         <span><?php echo "$reg_number | $full_name"; ?></span>
-        <span><?php echo $student_department; ?></span>
+        <span>
+            <?php echo $student_department; ?>
+            <?php if ($is_new_student): ?>
+                <span class="new-student-badge">🎓 New Student</span>
+            <?php endif; ?>
+        </span>
     </div>
 
     <div class="card">
         <div class="card-title">
             WEEKLY TEACHING SCHEDULE<br>
-            <span style="font-size: 0.8rem; font-weight: 400; color: var(--text-light);"><?php echo $program_name; ?> (<?php echo $semester; ?>)</span>
+            <span style="font-size: 0.8rem; font-weight: 400; color: var(--text-light);">
+                <?php echo $program_name; ?> (<?php echo $semester; ?>)
+            </span>
+        </div>
+
+        <div class="semester-info">
+            📅 <strong>Current Semester:</strong> <?php echo $semester; ?> 
+            <?php if ($is_new_student): ?>
+                <span style="color: #10b981; margin-left: 10px;">✅ Welcome! You are seeing 1st Semester units as a new student.</span>
+            <?php endif; ?>
         </div>
 
         <table>
@@ -202,7 +261,13 @@ switch($student_department) {
                     echo "<tr><td colspan='10' class='no-data'>
                         <strong>⚠️ No timetable found for your department.</strong><br><br>
                         Your department: <strong>{$student_department}</strong><br>
-                        Please contact the academic office or ask the admin to schedule units for your department.
+                        Current Semester: <strong>{$semester}</strong><br><br>
+                        <?php if ($is_new_student): ?>
+                            💡 <i>As a new student, you should be seeing 1st Semester units. If no units are showing, please contact the academic office to ensure your department's 1st Semester units are scheduled.</i><br><br>
+                        <?php else: ?>
+                            💡 <i>Please contact the academic office or ask the admin to schedule units for your department.</i><br><br>
+                        <?php endif; ?>
+                        📌 <b>Tip:</b> Try asking the chatbot 'What to register' to see your required units!
                     </td></tr>";
                 }
                 ?>
@@ -212,7 +277,7 @@ switch($student_department) {
 </div>
 
 <footer>
-    &copy;  Portal Assistant AI System
+    &copy; Portal Assistant AI System
 </footer>
 
 </body>

@@ -931,17 +931,25 @@ function fuzzyDetectIntent($input) {
 }
 
 /* ============================================================
-    FEE MANAGEMENT FUNCTIONS - COMPLETELY FIXED
+    FEE MANAGEMENT FUNCTIONS - CORRECTED FOR fees_structure TABLE
 ============================================================ */
 
 // Get fee structure for a student based on department and year level
+// Uses table: fees_structure (with 's') - columns: year (department), category (fee_type)
 function getStudentFeeStructure($conn, $department, $year_level, $semester) {
-    $query = "SELECT fs.* 
-              FROM fee_structure fs 
-              WHERE fs.department = ? 
-              AND fs.year_level = ? 
-              AND fs.semester = ? 
-              ORDER BY fs.id ASC";
+    // Removed non-existent 'due_date' column
+    $query = "SELECT 
+                year as department,
+                semester,
+                year_level,
+                category as fee_type,
+                amount,
+                id
+              FROM fees_structure 
+              WHERE year = ? 
+              AND year_level = ? 
+              AND semester = ? 
+              ORDER BY id ASC";
     
     $stmt = $conn->prepare($query);
     if (!$stmt) {
@@ -958,6 +966,7 @@ function getStudentFeeStructure($conn, $department, $year_level, $semester) {
     $result = $stmt->get_result();
     $fees = [];
     while ($row = $result->fetch_assoc()) {
+        // due_date will be added later with a default value
         $fees[] = $row;
     }
     $stmt->close();
@@ -969,13 +978,14 @@ function getStudentFeeBalance($conn, $student_reg) {
     // Get student department and year level
     $department = getStudentDepartment();
     $year_level = getStudentYearLevel($conn, $student_reg);
-    $semester = getCurrentSemester();
+    // Use student-specific semester to ensure new students get Semester 1
+    $semester = getStudentCurrentSemester($conn, $student_reg);
     
     if (!$department) {
         return ['error' => 'Department not found for this student. Please contact the academic office.'];
     }
     
-    // Get fee structure
+    // Get fee structure using corrected function
     $fee_structure = getStudentFeeStructure($conn, $department, $year_level, $semester);
     
     if (empty($fee_structure)) {
@@ -1025,7 +1035,8 @@ function getStudentFeeBalance($conn, $student_reg) {
             'paid' => $paid,
             'remaining' => $remaining,
             'status' => ($remaining <= 0) ? 'Paid' : 'Pending',
-            'due_date' => $fee['due_date']
+            // Default due_date 30 days from now if not present
+            'due_date' => date('Y-m-d', strtotime('+30 days'))
         ];
         
         $total_fees += $amount;
@@ -1059,7 +1070,7 @@ function getPaymentMethods() {
 function generateFeeResponse($conn, $student_reg, $intent) {
     $department = getStudentDepartment();
     $year_level = getStudentYearLevel($conn, $student_reg);
-    $semester = getCurrentSemester();
+    $semester = getStudentCurrentSemester($conn, $student_reg);
     $semester_name = ($semester == 1) ? '1st Semester' : '2nd Semester';
     
     // Get fee data
@@ -1081,13 +1092,13 @@ function generateFeeResponse($conn, $student_reg, $intent) {
             $response .= "📅 <b>Semester:</b> {$semester_name}<br><br>";
             
             $response .= "<b>📊 Fee Summary:</b><br>";
-            $response .= "   💰 <b>Total Fees:</b> $" . number_format($fee_data['total_fees'], 2) . "<br>";
-            $response .= "   ✅ <b>Paid Amount:</b> $" . number_format($fee_data['total_paid'], 2) . "<br>";
+            $response .= "   💰 <b>Total Fees:</b> KSh " . number_format($fee_data['total_fees'], 2) . "<br>";
+            $response .= "   ✅ <b>Paid Amount:</b> KSh " . number_format($fee_data['total_paid'], 2) . "<br>";
             
             if ($fee_data['outstanding_balance'] > 0) {
-                $response .= "   ⚠️ <b style='color: #dc3545;'>Outstanding Balance:</b> $" . number_format($fee_data['outstanding_balance'], 2) . "<br>";
+                $response .= "   ⚠️ <b style='color: #dc3545;'>Outstanding Balance:</b> KSh " . number_format($fee_data['outstanding_balance'], 2) . "<br>";
             } else {
-                $response .= "   🎉 <b style='color: #28a745;'>All fees cleared!</b> $" . number_format($fee_data['outstanding_balance'], 2) . "<br>";
+                $response .= "   🎉 <b style='color: #28a745;'>All fees cleared!</b> KSh " . number_format($fee_data['outstanding_balance'], 2) . "<br>";
             }
             $response .= "   📊 <b>Payment Progress:</b> " . number_format($fee_data['payment_percentage'], 1) . "% complete<br><br>";
             
@@ -1101,7 +1112,7 @@ function generateFeeResponse($conn, $student_reg, $intent) {
                 $response .= "📌 <b>Outstanding Fees Breakdown:</b><br>";
                 foreach ($fee_data['fee_breakdown'] as $fee) {
                     if ($fee['remaining'] > 0) {
-                        $response .= "   • <b>" . ucfirst(str_replace('_', ' ', $fee['fee_type'])) . "</b>: $" . number_format($fee['remaining'], 2) . " (Due: " . date('d M Y', strtotime($fee['due_date'])) . ")<br>";
+                        $response .= "   • <b>" . ucfirst(str_replace('_', ' ', $fee['fee_type'])) . "</b>: KSh " . number_format($fee['remaining'], 2) . " (Due: " . date('d M Y', strtotime($fee['due_date'])) . ")<br>";
                     }
                 }
                 $response .= "<br>💡 <i>Say 'How to pay fees?' to see available payment methods!</i><br>";
@@ -1132,18 +1143,18 @@ function generateFeeResponse($conn, $student_reg, $intent) {
                     $status_text = ($fee['remaining'] <= 0) ? '✅ Paid' : '⏳ Pending';
                     $response .= "<tr>";
                     $response .= "<td style='padding: 8px; border: 1px solid #e2e8f0;'><b>" . ucfirst(str_replace('_', ' ', $fee['fee_type'])) . "</b></td>";
-                    $response .= "<td style='padding: 8px; text-align: right; border: 1px solid #e2e8f0;'>$" . number_format($fee['amount'], 2) . "</td>";
-                    $response .= "<td style='padding: 8px; text-align: right; border: 1px solid #e2e8f0;'>$" . number_format($fee['paid'], 2) . "</td>";
-                    $response .= "<td style='padding: 8px; text-align: right; border: 1px solid #e2e8f0; color: {$status_color};'><b>$" . number_format($fee['remaining'], 2) . "</b></td>";
+                    $response .= "<td style='padding: 8px; text-align: right; border: 1px solid #e2e8f0;'>KSh " . number_format($fee['amount'], 2) . "</td>";
+                    $response .= "<td style='padding: 8px; text-align: right; border: 1px solid #e2e8f0;'>KSh " . number_format($fee['paid'], 2) . "</td>";
+                    $response .= "<td style='padding: 8px; text-align: right; border: 1px solid #e2e8f0; color: {$status_color};'><b>KSh " . number_format($fee['remaining'], 2) . "</b></td>";
                     $response .= "<td style='padding: 8px; border: 1px solid #e2e8f0; color: {$status_color};'>{$status_text}</td>";
                     $response .= "</tr>";
                 }
                 
                 $response .= "<tr style='background: #f1f5f9; font-weight: bold;'>";
                 $response .= "<td style='padding: 8px; border: 1px solid #e2e8f0;'>TOTAL</td>";
-                $response .= "<td style='padding: 8px; text-align: right; border: 1px solid #e2e8f0;'>$" . number_format($fee_data['total_fees'], 2) . "</td>";
-                $response .= "<td style='padding: 8px; text-align: right; border: 1px solid #e2e8f0;'>$" . number_format($fee_data['total_paid'], 2) . "</td>";
-                $response .= "<td style='padding: 8px; text-align: right; border: 1px solid #e2e8f0; color: " . ($fee_data['outstanding_balance'] > 0 ? '#dc3545' : '#28a745') . ";'>$" . number_format($fee_data['outstanding_balance'], 2) . "</td>";
+                $response .= "<td style='padding: 8px; text-align: right; border: 1px solid #e2e8f0;'>KSh " . number_format($fee_data['total_fees'], 2) . "</td>";
+                $response .= "<td style='padding: 8px; text-align: right; border: 1px solid #e2e8f0;'>KSh " . number_format($fee_data['total_paid'], 2) . "</td>";
+                $response .= "<td style='padding: 8px; text-align: right; border: 1px solid #e2e8f0; color: " . ($fee_data['outstanding_balance'] > 0 ? '#dc3545' : '#28a745') . ";'>KSh " . number_format($fee_data['outstanding_balance'], 2) . "</td>";
                 $response .= "<td style='padding: 8px; border: 1px solid #e2e8f0;'></td>";
                 $response .= "</tr>";
                 $response .= "</table><br>";
@@ -1171,7 +1182,7 @@ function generateFeeResponse($conn, $student_reg, $intent) {
                     $response .= "   • <b>" . ucfirst(str_replace('_', ' ', $fee['fee_type'])) . "</b><br>";
                     $response .= "     📅 Due: " . date('F j, Y', strtotime($fee['due_date'])) . "<br>";
                     $response .= "     ⏰ Days Left: {$days_left} days — {$urgency}<br>";
-                    $response .= "     💰 Amount Due: $" . number_format($fee['remaining'], 2) . "<br><br>";
+                    $response .= "     💰 Amount Due: KSh " . number_format($fee['remaining'], 2) . "<br><br>";
                 }
                 
                 $response .= "💡 <i>Pay before the deadline to avoid late penalties!</i><br>";

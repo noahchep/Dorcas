@@ -30,27 +30,19 @@ $total_units = 0;
 $q2 = mysqli_query($conn, "SELECT COUNT(*) AS total FROM academic_workload");
 if ($q2) { $total_units = mysqli_fetch_assoc($q2)['total']; }
 
-// Research Metric: Total Survey Responses
 $total_surveys = 0;
 $q3 = mysqli_query($conn, "SELECT COUNT(*) AS total FROM survey_responses");
 if ($q3) { $total_surveys = mysqli_fetch_assoc($q3)['total']; }
 
-// Get pending registrations count
 $pending_registrations = 0;
 $q4 = mysqli_query($conn, "SELECT COUNT(*) AS total FROM registered_courses WHERE status='pending'");
 if ($q4) { $pending_registrations = mysqli_fetch_assoc($q4)['total']; }
 
-// Get total lecturers count
 $total_lecturers = 0;
 $q5 = mysqli_query($conn, "SELECT COUNT(*) AS total FROM users WHERE role='lecturer'");
 if ($q5) { $total_lecturers = mysqli_fetch_assoc($q5)['total']; }
 
-// Determine current section
 $section = $_GET['section'] ?? 'dashboard';
-
-// Notification Logic
-$notif_q = mysqli_query($conn, "SELECT COUNT(*) as count FROM admin_referrals WHERE status='pending'");
-$notif_count = mysqli_fetch_assoc($notif_q)['count'] ?? 0;
 ?>
 
 <!DOCTYPE html>
@@ -59,8 +51,8 @@ $notif_count = mysqli_fetch_assoc($notif_q)['count'] ?? 0;
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Portal | Student Support Agent</title>
-   <link rel="icon" type="image/jpeg" href="../Images/logo.jpg">
-<link rel="shortcut icon" href="../Images/logo.jpg">
+    <link rel="icon" type="image/jpeg" href="../Images/logo.jpg">
+    <link rel="shortcut icon" href="../Images/logo.jpg">
     <style>
         :root {
             --primary: #4f46e5;
@@ -83,6 +75,7 @@ $notif_count = mysqli_fetch_assoc($notif_q)['count'] ?? 0;
         .branding { display: flex; align-items: center; gap: 15px; }
         .logoimg { height: 50px; border-radius: 8px; }
         .branding h1 { margin: 0; font-size: 1.4rem; color: var(--primary); font-weight: 800; }
+        .branding small { color: var(--text-light); display: block; font-size: 0.85rem; }
 
         nav { background: var(--primary); padding: 0 5%; }
         .nav-top { display: flex; gap: 10px; flex-wrap: wrap; }
@@ -110,9 +103,6 @@ $notif_count = mysqli_fetch_assoc($notif_q)['count'] ?? 0;
         .ai-note { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 15px; border-radius: 4px; font-size: 0.85rem; color: #92400e; }
         footer { text-align: center; padding: 40px; color: var(--text-light); font-size: 0.85rem; }
 
-        .chat-fab { position: fixed; bottom: 30px; right: 30px; background: var(--primary); color: white; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3); z-index: 1000; text-decoration: none; border: none; cursor: pointer; }
-        .badge { position: absolute; top: -5px; right: -5px; background: #ef4444; color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; }
-        
         /* Table Styles */
         .data-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         .data-table th, .data-table td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); }
@@ -167,7 +157,7 @@ $notif_count = mysqli_fetch_assoc($notif_q)['count'] ?? 0;
         <a href="Admin-index.php?section=units" class="<?php echo ($section === 'units' || $section === 'add_workload' || $section === 'add_unit' || $section === 'edit_unit') ? 'active' : ''; ?>">Manage Units</a>
         <a href="Admin-index.php?section=timetable" class="<?php echo ($section === 'timetable') ? 'active' : ''; ?>">Timetable</a>
         <a href="Admin-index.php?section=registrations" class="<?php echo ($section === 'registrations') ? 'active' : ''; ?>">Registrations</a>
-        <a href="Admin-index.php?section=escalations" class="<?php echo ($section === 'escalations') ? 'active' : ''; ?>">AI Escalations</a>
+        <!-- AI Escalations link removed -->
         <a href="Admin-index.php?section=analytics" class="nav-research <?php echo ($section === 'analytics') ? 'active' : ''; ?>">📊 Research Analytics</a>
         <a href="Admin-index.php?section=reports" class="<?php echo ($section === 'reports') ? 'active' : ''; ?>">Reports</a>
         <a href="Admin-index.php?section=kb" class="<?php echo ($section === 'kb') ? 'active' : ''; ?>">Knowledge Base</a>
@@ -207,7 +197,6 @@ $notif_count = mysqli_fetch_assoc($notif_q)['count'] ?? 0;
     </div>
 
     <?php 
-    // Handle POST actions
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (isset($_POST['action'])) {
             switch($_POST['action']) {
@@ -350,6 +339,7 @@ $notif_count = mysqli_fetch_assoc($notif_q)['count'] ?? 0;
             break;
 
         case 'escalations':
+            // This case might still be referenced but link removed – we can keep it just in case
             echo '<div style="height:600px; border:1px solid #ccc; border-radius:8px;">
                     <iframe src="view_escalations.php" style="width:100%; height:100%; border:none;"></iframe>
                     </div>';
@@ -370,35 +360,6 @@ $notif_count = mysqli_fetch_assoc($notif_q)['count'] ?? 0;
     ?>
 </div>
 
-<div id="chatModal" style="display:none; position:fixed; z-index:9999; bottom:90px; right:20px; width:400px; height:500px; background:white; border-radius:12px; box-shadow:0 10px 25px rgba(0,0,0,0.2); overflow:hidden; flex-direction:column;">
-    <div style="background:#4f46e5; color:white; padding:15px; display:flex; justify-content:space-between; align-items:center;">
-        <strong>AI Escalations</strong>
-        <span onclick="document.getElementById('chatModal').style.display='none'" style="cursor:pointer; font-size:20px;">&times;</span>
-    </div>
-    <div id="modalContent" style="flex:1; overflow-y:auto; background:#f9f9f9;">
-        <p style="padding:20px;">Select an escalation...</p>
-    </div>
-</div>
-
-<?php if($notif_count > 0): ?>
-    <button onclick="openEscalations()" class="chat-fab">💬<span class="badge"><?php echo $notif_count; ?></span></button>
-<?php endif; ?>
-
-<script>
-function openEscalations() {
-    document.getElementById('chatModal').style.display = 'flex';
-    document.getElementById('modalContent').innerHTML = '<p style="padding:20px;">Loading list...</p>';
-    fetch('view_escalations.php').then(response => response.text()).then(data => {
-        document.getElementById('modalContent').innerHTML = data;
-    });
-}
-function loadMessage(conv_id) {
-    document.getElementById('chatModal').style.display = 'flex';
-    const content = document.getElementById('modalContent');
-    content.innerHTML = `<iframe src="view_conversation.php?conv_id=${conv_id}" style="width:100%; height:100%; border:none; display:block;"></iframe>`;
-}
-</script>
- 
 <footer>
     &copy; 2026 Portal Assistant AI
 </footer>
